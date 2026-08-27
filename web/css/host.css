@@ -1,0 +1,558 @@
+/* Host: lobby y partida. Se ve desde ~60 cm y en horizontal (§11).
+   Misma estética que el mando: neón sobre negro azulado, esquinas cortadas y
+   suelo en fuga con el horizonte al 60%. */
+
+@import url('../vendor/fuentes/fuentes.css');
+
+:root {
+  --fondo: #06060c;
+  --panel: #0b1220;
+  --borde: #1d2a3d;
+  --texto: #e8f4ff;
+  --texto-tenue: #7f97b0;
+  --texto-apagado: #5b7590;
+  --cian: #00e5ff;
+  --verde: #39ff7a;
+  --display: 'Chakra Petch', 'Trebuchet MS', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+/* Sin esto, el padding se suma a las alturas: un contenedor de 100svh con
+   padding acaba midiendo más que la pantalla y desborda. Es lo que hacía que el
+   lobby no cupiera. */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* Mientras se traduce, el contenido se oculta para no enseñar el idioma
+   original un instante. Se usa visibility y no display para no provocar un
+   reflujo, y la caja de errores se exceptúa: si algo falla, hay que verlo. */
+.i18n-pendiente body > *:not(#errores) { visibility: hidden; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--fondo);
+  color: var(--texto);
+  font: 16px/1.5 var(--display);
+  overscroll-behavior: none;
+}
+
+a { color: var(--cian); }
+a:hover { color: #7df9ff; }
+
+/* --- La escena ----------------------------------------------------------- */
+
+.escena {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.escena::before,
+.escena::after {
+  content: '';
+  position: absolute;
+}
+
+.escena::before {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60%;
+  background: radial-gradient(100% 130% at 50% 100%, #00e5ff26, transparent 70%);
+}
+
+/* Tenue a propósito: con más brillo el resplandor invade el texto cercano. */
+.escena::after {
+  top: 60%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cian), transparent);
+  opacity: 0.35;
+}
+
+.suelo {
+  position: absolute;
+  top: 60%;
+  left: -60%;
+  right: -60%;
+  bottom: -25%;
+  transform: perspective(150px) rotateX(62deg);
+  transform-origin: 50% 0%;
+  background-image:
+    repeating-linear-gradient(90deg, #00e5ff3d 0 1px, transparent 1px 46px),
+    repeating-linear-gradient(0deg, #00e5ff3d 0 1px, transparent 1px 46px);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 22%, #000);
+  mask-image: linear-gradient(180deg, transparent, #000 22%, #000);
+}
+
+/* La escena desaparece en partida: ahí manda el juego. */
+body.jugando .escena { display: none; }
+
+.corte {
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+}
+
+/* --- Lobby --------------------------------------------------------------- */
+
+/* Ojo con el atributo hidden: vale display:none, pero cualquier regla nuestra
+   que fije display lo pisa. Sin el :not([hidden]), la pantalla de arranque
+   sigue ocupando el alto completo tras ocultarse y empuja al emulador fuera de
+   la vista. Y no vale un [hidden]{display:none !important} global: EmulatorJS
+   usa hidden internamente. */
+
+/* El lobby ocupa exactamente el viewport y reparte: cabecera arriba, paso
+   debajo. Nada de centrar el conjunto — centrar lo que desborda deja la parte
+   de arriba fuera de la pantalla y sin forma de alcanzarla. */
+#arranque:not([hidden]) {
+  position: relative;
+  z-index: 1;
+  height: 100svh;
+  display: grid;
+  /* minmax(0, 1fr) y no 1fr: un track «1fr» no baja de su contenido mínimo, así
+     que el grid crecía más que la pantalla y reaparecía el desbordamiento. */
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: .5rem;
+  padding: clamp(.4rem, 2svh, 1rem) 1rem;
+  overflow: hidden;
+  text-align: center;
+}
+
+#cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+#arranque h1 {
+  margin: 0;
+  /* Mínimo bajo a propósito: con 360 px de alto, un mínimo de 1.4rem impedía
+     que el clamp hiciera su trabajo. */
+  font-size: clamp(.95rem, 4svh, 1.9rem);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-shadow: 0 0 18px #00e5ff66;
+}
+
+/* Cada paso ocupa lo que quede bajo la cabecera, sin desbordar. */
+.paso {
+  min-height: 0;
+  width: 100%;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: clamp(.4rem, 2svh, 1rem);
+  align-items: center;
+  justify-items: center;
+  overflow: hidden;
+}
+
+.paso[hidden] { display: none; }
+
+/* --- Paso 1: los QR ------------------------------------------------------ */
+
+.qrs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1rem, 4vw, 3rem);
+  min-height: 0;
+}
+
+.qrs figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .5rem;
+  min-height: 0;
+}
+
+.qrs figure[hidden] { display: none; }
+
+/* El QR se pinta sobre claro: sobre fondo oscuro muchas cámaras no leen.
+   Se dimensiona con la altura disponible, que es la que escasea en horizontal;
+   con vmin se quedaba diminuto en pantallas anchas y bajas. */
+.qr {
+  padding: clamp(.25rem, 1svh, .55rem);
+  background: var(--texto);
+  line-height: 0;
+  box-shadow: 0 0 26px #00e5ff44;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+
+.qr img, .qr canvas {
+  display: block;
+  width: min(38svh, 30vw, 220px);
+  height: auto;
+}
+
+.qrs figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+}
+
+.qrs strong {
+  font: 600 clamp(.72rem, 2svh, .95rem) var(--display);
+  color: var(--texto);
+  letter-spacing: .02em;
+}
+
+/* El número de paso es decoración, no texto: se pinta desde CSS para que el
+   separador no viaje dentro de la frase traducible. */
+.qrs .orden::after {
+  content: ' · ';
+  color: var(--texto-apagado);
+}
+.qrs .orden[hidden] { display: none; }
+
+.credenciales {
+  display: flex;
+  flex-direction: column;
+  font: 400 clamp(.6rem, 1.7svh, .78rem) var(--mono);
+  letter-spacing: .06em;
+  color: var(--cian);
+  word-break: break-all;
+}
+
+.credenciales span:last-child:not(:first-child) { color: var(--texto-apagado); }
+
+#avisoRed[hidden] { display: none; }
+#avisoRed { color: #ffb300; }
+
+.nota {
+  margin: 0;
+  font: 400 clamp(.6rem, 1.6svh, .68rem) var(--mono);
+  letter-spacing: .1em;
+  color: var(--texto-apagado);
+}
+
+/* --- Puestos ------------------------------------------------------------- */
+
+#puestos { display: flex; gap: .5rem; }
+
+/* En la cabecera los puestos son un indicador, no el protagonista: fila
+   compacta que se lee de un vistazo sin robar altura al paso. */
+.puesto {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .25rem .6rem;
+  border: 1px solid #22304a;
+  background: var(--panel);
+  color: var(--texto-apagado);
+  transition: border-color 120ms linear, color 120ms linear, box-shadow 120ms linear;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+}
+
+.puesto .numero { font-size: clamp(.8rem, 2.2svh, 1rem); font-weight: 700; line-height: 1; }
+.puesto .etiqueta { font: 400 clamp(.5rem, 1.4svh, .58rem)/1 var(--mono); letter-spacing: .12em; }
+
+.puesto.ocupado.jugador-1 { --c: #ff2e6a; }
+.puesto.ocupado.jugador-2 { --c: #00e5ff; }
+.puesto.ocupado.jugador-3 { --c: #39ff7a; }
+.puesto.ocupado.jugador-4 { --c: #ffb300; }
+
+.puesto.ocupado {
+  border-color: var(--c);
+  color: var(--c);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--c) 27%, transparent),
+              inset 0 0 16px color-mix(in srgb, var(--c) 10%, transparent);
+}
+
+.puesto.caido { opacity: .45; }
+
+/* --- Paso 2: selector de juegos ------------------------------------------ */
+
+#selector {
+  width: min(92vw, 40rem);
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: .4rem;
+}
+
+.visualmente-oculto {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+#buscar {
+  min-height: clamp(30px, 6svh, 40px);
+  padding: 0 .75rem;
+  border: 1px solid var(--borde);
+  background: color-mix(in srgb, var(--panel) 72%, transparent);
+  color: var(--texto);
+  font: 400 clamp(.72rem, 2svh, .82rem) var(--mono);
+  letter-spacing: .06em;
+}
+
+#buscar::placeholder { color: var(--texto-apagado); }
+
+/* La lista ocupa lo que quede: con el paso entero para ella caben muchas más
+   filas que las tres de antes. */
+#juegos {
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  overflow-y: auto;
+  list-style: none;
+  text-align: left;
+  border: 1px solid #16202f;
+}
+
+#juegos li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .38rem .6rem;
+  border-left: 2px solid transparent;
+  color: var(--texto-tenue);
+  font-size: .85rem;
+  cursor: pointer;
+}
+
+#juegos li.elegido {
+  background: linear-gradient(90deg, #00e5ff26, transparent);
+  border-left-color: var(--cian);
+  color: var(--texto);
+}
+
+#juegos li.vacio { color: var(--texto-apagado); cursor: default; justify-content: center; }
+
+/* La consola de cada juego, discreta al final de la línea. */
+#juegos li[data-sistema]::after {
+  content: attr(data-sistema);
+  color: var(--texto-apagado);
+  font: 400 .58rem/1 var(--mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+/* --- Botones -------------------------------------------------------------- */
+
+.acciones-paso {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.principal, .secundario {
+  min-height: clamp(38px, 8svh, 52px);
+  padding: 0 clamp(1rem, 3vw, 2.2rem);
+  font: 700 clamp(.75rem, 2.2svh, 1rem) var(--display);
+  letter-spacing: .14em;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+
+.principal {
+  border: 1px solid var(--verde);
+  background: #0d2417;
+  color: var(--verde);
+  box-shadow: 0 0 24px #39ff7a33;
+}
+
+.secundario {
+  border: 1px solid var(--borde);
+  background: transparent;
+  color: var(--texto-apagado);
+}
+
+.secundario[hidden] { display: none; }
+
+/* --- Partida ------------------------------------------------------------- */
+
+/* El marco del emulador ocupa la pantalla entera durante la partida. */
+#marco {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #000;
+  z-index: 1;
+}
+
+#marco[hidden] { display: none; }
+
+/* Una vez en marcha no hay nada más que ver: sin scroll. */
+body.jugando { overflow: hidden; }
+
+/* El diagnóstico y el indicador de mandos son de partida: en el lobby estorban
+   y tapaban la cabecera. Sus reglas fijan display, así que el atributo hidden
+   no basta por sí solo. */
+#diag[hidden], #hud[hidden] { display: none; }
+
+#diag {
+  position: fixed;
+  top: .5rem;
+  left: .5rem;
+  display: flex;
+  gap: .75rem;
+  padding: .35rem .6rem;
+  background: #06060cd0;
+  border: 1px solid var(--borde);
+  color: var(--texto-apagado);
+  font: 400 .62rem/1.4 var(--mono);
+  letter-spacing: .06em;
+  font-variant-numeric: tabular-nums;
+  z-index: 10;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+
+/* Plegada: sigue accesible de un toque, pero no molesta durante la partida. */
+#diag.mini {
+  max-width: 1.5rem;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: .35;
+}
+
+/* --- Menú propio de partida ---------------------------------------------- */
+
+/* La barra de EmulatorJS está oculta, así que este es el único acceso durante
+   la partida. Discreto, en una esquina, lejos de donde se mira. */
+#menuPartida {
+  position: fixed;
+  bottom: .5rem;
+  right: .5rem;
+  z-index: 16;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: .4rem;
+}
+
+#menuPartida[hidden] { display: none; }
+
+#abrirMenu {
+  width: 2.2rem;
+  height: 2.2rem;
+  border: 1px solid var(--borde);
+  background: #06060cc0;
+  color: var(--texto-apagado);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+#opcionesMenu {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+}
+
+#opcionesMenu[hidden] { display: none; }
+
+#opcionesMenu button {
+  padding: .55rem .9rem;
+  border: 1px solid var(--borde);
+  background: #06060ce0;
+  color: var(--texto);
+  font: 500 .78rem var(--display);
+  letter-spacing: .06em;
+  white-space: nowrap;
+}
+
+/* Indicador de mandos: aparece al cambiar algo y se desvanece solo. */
+#hud {
+  position: fixed;
+  top: .5rem;
+  right: .5rem;
+  display: flex;
+  gap: .35rem;
+  opacity: 0;
+  transition: opacity 400ms ease;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#hud.visible { opacity: 1; }
+
+#hud span {
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: var(--fondo);
+  border: 1px solid var(--c);
+  color: var(--c);
+  font: 700 .8rem var(--display);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--c) 40%, transparent);
+}
+
+#hud .jugador-1 { --c: #ff2e6a; }
+#hud .jugador-2 { --c: #00e5ff; }
+#hud .jugador-3 { --c: #39ff7a; }
+#hud .jugador-4 { --c: #ffb300; }
+#hud .caido { opacity: .4; }
+
+/* Confirmación de lo que piden los mandos: aparece, se lee y se va. */
+#aviso {
+  position: fixed;
+  bottom: 1.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: .55rem 1.4rem;
+  background: #06060cd8;
+  border: 1px solid #39ff7a66;
+  color: var(--verde);
+  font: 700 .82rem var(--display);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  box-shadow: 0 0 22px #39ff7a22;
+  opacity: 0;
+  transition: opacity 250ms ease;
+  pointer-events: none;
+  z-index: 15;
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+}
+
+#aviso.visible { opacity: 1; }
+
+#errores {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 40%;
+  margin: 0;
+  overflow: auto;
+  padding: .5rem;
+  background: #7f1d1d;
+  color: #fff;
+  font: 400 .7rem/1.4 var(--mono);
+  white-space: pre-wrap;
+  z-index: 20;
+}
+
+/* Respaldo por si la opción de EmulatorJS no basta para quitar sus controles. */
+.ejs_virtualGamepad_parent { display: none !important; }
+
+/* --- Pantallas muy bajas -------------------------------------------------- */
+
+/* El caso real del host: móvil apaisado, 360 px de alto. Aquí lo que sobra es
+   todo lo decorativo. */
+@media (max-height: 480px) {
+  #arranque:not([hidden]) { gap: .25rem; padding: .3rem .75rem; }
+  #cabecera { gap: .6rem; }
+  .qrs figcaption { gap: 0; }
+  .qrs { gap: clamp(.75rem, 3vw, 2rem); }
+}
+
+/* Pantallas anchas y altas (tablet, PC): el QR puede crecer de verdad. */
+@media (min-height: 700px) {
+  .qr img, .qr canvas { width: min(30svh, 34vw, 300px); }
+}

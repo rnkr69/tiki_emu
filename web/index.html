@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-i18n-title="titulo.consola">Consola</title>
+
+
+<!-- Idioma: se decide antes de pintar. Ver js/idioma-temprano.js. -->
+<script src="./js/idioma-temprano.js"></script>
+
+<link rel="stylesheet" href="./css/host.css">
+</head>
+<body>
+
+<!-- En el móvil no hay DevTools a mano: cualquier error de JS se pinta aquí. -->
+<pre id="errores" hidden></pre>
+
+<div class="escena" aria-hidden="true"><div class="suelo"></div></div>
+
+<div id="arranque">
+
+  <!-- Cabecera común: identidad y estado de los puestos, siempre visible para
+       saber quién ha entrado sin cambiar de pantalla. -->
+  <header id="cabecera">
+    <h1>TIKI_EMU</h1>
+    <div id="puestos"></div>
+  </header>
+
+  <!-- Paso 1: conectar los mandos ---------------------------------------- -->
+  <section id="paso1" class="paso">
+    <div class="qrs">
+      <!-- La red solo aparece si la consola la ha creado ella. Sin estar en la
+           red, el segundo QR no sirve de nada: por eso va primero. -->
+      <figure id="tarjetaRed" hidden>
+        <div id="qrRed" class="qr"></div>
+        <figcaption>
+          <strong><span class="orden">1</span><span data-i18n="lobby.red.conecta">Conecta tu móvil a esta red</span></strong>
+          <span class="credenciales">
+            <span id="ssidRed"></span>
+            <span id="claveRed"></span>
+          </span>
+        </figcaption>
+      </figure>
+
+      <figure id="tarjetaMando">
+        <div id="qr" class="qr"></div>
+        <figcaption>
+          <strong><span class="orden" id="numeroMando" hidden>2</span><span data-i18n="lobby.mando.abre">Abre el mando en tu móvil</span></strong>
+          <span class="credenciales"><span id="urlPad"></span></span>
+        </figcaption>
+      </figure>
+    </div>
+
+    <p class="nota" id="avisoRed" hidden></p>
+    <button id="irAJuego" class="principal" data-i18n="lobby.acciones.elegirJuego">Elegir juego</button>
+  </section>
+
+  <!-- Paso 2: elegir juego ------------------------------------------------ -->
+  <section id="paso2" class="paso" hidden>
+    <div id="selector">
+      <label for="buscar" class="visualmente-oculto" data-i18n="lobby.juegos.buscarEtiqueta">Buscar juego</label>
+      <input id="buscar" type="search" data-i18n-attr="placeholder:lobby.juegos.buscar"
+             placeholder="Buscar juego…" autocomplete="off">
+      <ul id="juegos"></ul>
+    </div>
+
+    <div class="acciones-paso">
+      <button id="volverAMandos" class="secundario" data-i18n="lobby.acciones.mandos">Mandos</button>
+      <button id="elegirCarpeta" class="secundario" hidden data-i18n="lobby.acciones.carpeta">Carpeta de juegos</button>
+      <button id="seguirJugando" class="secundario" hidden data-i18n="lobby.acciones.seguir">Seguir jugando</button>
+      <button id="empezar" class="principal" data-i18n="lobby.acciones.empezar">Empezar</button>
+    </div>
+  </section>
+</div>
+
+<!-- El emulador va en un marco: cambiar de juego no toca esta página, así que
+     la conexión con los mandos sobrevive al cambio (HU-15). -->
+<iframe id="marco" data-i18n-attr="title:titulo.juego" title="Juego" hidden></iframe>
+
+<div id="diag" hidden>
+  <span id="estado">—</span>
+  <span id="paquetes"></span>
+</div>
+
+<!-- Menú propio de partida. La barra de EmulatorJS se oculta de raíz, así que
+     esto es lo único que se puede tocar durante el juego. -->
+<div id="menuPartida" hidden>
+  <button id="abrirMenu" data-i18n-attr="aria-label:partida.menu" aria-label="Menú">☰</button>
+  <div id="opcionesMenu" hidden>
+    <button id="menuLobby" data-i18n="partida.volver">Volver al lobby</button>
+    <button id="menuReiniciar" data-i18n="partida.reiniciar">Reiniciar juego</button>
+  </div>
+</div>
+
+<!-- Indicador de mandos durante la partida: se desvanece a los pocos segundos. -->
+<div id="hud" hidden></div>
+
+<!-- Confirmaciones de lo que piden los mandos: guardado, carga. -->
+<div id="aviso"></div>
+
+<script>
+  (function () {
+    const caja = document.getElementById('errores');
+    function pinta(texto) {
+      caja.hidden = false;
+      caja.textContent += texto + '\n';
+    }
+    window.addEventListener('error', (ev) => {
+      pinta(ev.message
+        ? `${ev.message} — ${ev.filename || ''}:${ev.lineno || ''}`
+        : `No se pudo cargar: ${ev.target && (ev.target.src || ev.target.href)}`);
+    }, true);
+    window.addEventListener('unhandledrejection', (ev) => pinta(`Promesa rechazada: ${ev.reason}`));
+  })();
+</script>
+
+<script src="./vendor/qrcode.min.js"></script>
+<script src="./vendor/nosleep.min.js"></script>
+<script type="module">
+import { NetHost } from './js/net-host.js';
+import { InputBus } from './js/input-bus.js';
+import { urlDelMando, pintarQR, pintarSlots, textoQrRed } from './js/lobby.js';
+import { t, aplicar, idioma, idiomaEmulador } from './js/i18n.js';
+
+// Primero se traduce lo escrito en el HTML; a partir de aquí todo lo que se
+// crea desde aquí ya nace traducido con t().
+aplicar();
+
+const $ = (id) => document.getElementById(id);
+
+// --- Pasos ------------------------------------------------------------------
+
+/**
+ * El lobby es un asistente de dos pasos porque en un móvil apaisado no cabe
+ * todo a la vez: son 360 px de alto. Cada paso ocupa la pantalla y hace una
+ * sola cosa.
+ */
+function mostrarPaso(n) {
+  $('paso1').hidden = n !== 1;
+  $('paso2').hidden = n !== 2;
+}
+
+$('irAJuego').addEventListener('click', () => mostrarPaso(2));
+$('volverAMandos').addEventListener('click', () => mostrarPaso(1));
+
+// --- Emparejamiento ---------------------------------------------------------
+
+// El QR no se puede pintar hasta saber por qué dirección alcanzan los mandos
+// a esta consola, y eso lo dice el servidor al saludar.
+let direcciones = [];
+let hilos = false;
+
+function refrescarQR() {
+  const url = urlDelMando(direcciones);
+  // La dirección se muestra pequeña, como respaldo por si una cámara no lee el
+  // código; el camino normal es escanear.
+  $('urlPad').textContent = url.replace(/^https?:\/\//, '');
+  pintarQR($('qr'), url);
+}
+
+/**
+ * Red propia de la consola, cuando quien sirve puede crearla (la app nativa).
+ * Sin ella el emparejamiento es un solo paso: escanear y jugar. Con ella son
+ * dos, y por eso se numeran.
+ */
+function pintarRed(red) {
+  const hayRed = Boolean(red && red.ssid);
+  $('tarjetaRed').hidden = !hayRed;
+  $('numeroMando').hidden = !hayRed;
+
+  if (hayRed) {
+    $('ssidRed').textContent = red.ssid;
+    // La contraseña ya viaja dentro del QR, así que enseñarla no revela nada
+    // nuevo: es el respaldo para cámaras que no leen códigos de WiFi.
+    $('claveRed').textContent = red.clave || t('lobby.red.sinClave');
+    pintarQR($('qrRed'), textoQrRed(red));
+    $('avisoRed').hidden = true;
+    return;
+  }
+
+  // Si no se pudo crear, se dice por qué y se sigue con la red actual: la
+  // consola funciona igual, solo hay que conectarse a mano.
+  if (red && red.error) {
+    // El servidor manda un código, no una frase: la frase se elige aquí, en el
+    // idioma de quien mira.
+    const motivo = t(`red.error.${red.error}`);
+    $('avisoRed').textContent = t('lobby.red.fallo', {
+      motivo: motivo === `red.error.${red.error}` ? t('red.error.desconocido') : motivo
+    });
+    $('avisoRed').hidden = false;
+  }
+}
+
+refrescarQR();
+
+let recibidos = 0;
+const latencias = new Map();   // slot -> última medición del mando
+
+const net = new NetHost({
+  // El estado viaja como valor fijo; aquí solo se le pone etiqueta.
+  onEstado: (e) => { $('estado').textContent = `red: ${t(`red.estado.${e}`)}`; },
+  onPaquete: () => { recibidos++; },
+  onSlots: (slots) => {
+    pintarSlots($('puestos'), slots);
+    pintarHud(slots);
+  },
+  // Quien sirve dice qué sabe hacer: elegir carpeta solo existe en la app.
+  onCapacidades: (c) => {
+    $('elegirCarpeta').hidden = !c?.elegirCarpeta;
+    // Los hilos solo los hay donde el origen es seguro y están los núcleos.
+    // Como todo lo demás, `web/` no lo deduce: lo pregunta.
+    hilos = Boolean(c?.hilos);
+  },
+  // El catálogo puede llegar más tarde que la página: leer una carpeta con
+  // cientos de juegos no bloquea el arranque del servidor.
+  onCatalogo: () => cargarCatalogo(),
+  onDirecciones: (lista) => { direcciones = lista; refrescarQR(); },
+  onRed: (red) => pintarRed(red),
+  onStats: (s) => latencias.set(s.slot, s),
+  // El host confirma en pantalla lo que ha pedido el mando (HU-14).
+  onHotkey: (id) => avisar(t(id === 'save' ? 'partida.guardada' : 'partida.cargada'))
+});
+
+let temporizadorAviso;
+function avisar(texto) {
+  const el = $('aviso');
+  el.textContent = texto;
+  el.classList.add('visible');
+  clearTimeout(temporizadorAviso);
+  temporizadorAviso = setTimeout(() => el.classList.remove('visible'), 2000);
+}
+net.conectar();
+
+// Superposición de diagnóstico (HU-17). Muestra la latencia que reporta cada
+// mando, para poder mirarla en la pantalla grande durante una partida real.
+setInterval(() => {
+  const partes = [`${recibidos} paq`, `${net.descartados} desc`];
+  for (const [slot, s] of [...latencias].sort((a, b) => a[0] - b[0])) {
+    partes.push(`J${slot}: ${s.ida}/${s.idaP95} ms${s.host !== null ? ` (host ${s.host})` : ''}`);
+  }
+  if (!InputBus.listo) partes.push('emulador no listo');
+  $('paquetes').textContent = partes.join(' · ');
+}, 500);
+
+// La superposición estorba en partida; se puede ocultar tocándola.
+$('diag').addEventListener('click', () => $('diag').classList.toggle('mini'));
+
+// Indicador discreto de mandos conectados, que se desvanece solo (§11).
+let temporizadorHud;
+function pintarHud(slots) {
+  const conectados = slots.filter((s) => s.taken);
+  if (!conectados.length) return;
+  $('hud').innerHTML = conectados
+    .map((s) => `<span class="jugador-${s.n}${s.conectado ? '' : ' caido'}">${s.n}</span>`)
+    .join('');
+  $('hud').classList.add('visible');
+  clearTimeout(temporizadorHud);
+  temporizadorHud = setTimeout(() => $('hud').classList.remove('visible'), 3000);
+}
+
+// --- Catálogo de juegos (HU-15) ---------------------------------------------
+
+let catalogo = [];
+let elegido = null;
+
+function cargarCatalogo() {
+  return fetch('/api/roms')
+    .then((r) => r.json())
+    .then((lista) => {
+      // El orden alfabético depende de quién mira: se ordena aquí, con el
+      // idioma del dispositivo, y no en el servidor con uno fijo.
+      catalogo = lista.sort((a, b) => a.nombre.localeCompare(b.nombre, idioma));
+      // Se conserva lo que ya estuviera elegido si sigue existiendo, para no
+      // perder la selección al reescanear.
+      const previo = elegido && lista.find((j) => j.url === elegido.url);
+      elegido = previo || lista.find((j) => j.url.endsWith('demo.nes')) || lista[0] || null;
+      pintarJuegos();
+    })
+    .catch(() => { pintarVacio(t('lobby.juegos.sinCatalogo')); });
+}
+
+cargarCatalogo();
+
+/** Fila única de aviso cuando la lista no tiene juegos que enseñar. */
+function pintarVacio(texto) {
+  const li = document.createElement('li');
+  li.className = 'vacio';
+  li.textContent = texto;
+  $('juegos').replaceChildren(li);
+}
+
+function pintarJuegos() {
+  const filtro = $('buscar').value.trim().toLowerCase();
+  const lista = filtro
+    ? catalogo.filter((j) => j.nombre.toLowerCase().includes(filtro))
+    : catalogo;
+  const ul = $('juegos');
+  ul.innerHTML = '';
+  // Se limita lo que se pinta: el catálogo puede tener cientos de entradas y en
+  // el móvil host construirlas todas cuesta.
+  for (const juego of lista.slice(0, 40)) {
+    const li = document.createElement('li');
+    li.textContent = juego.nombre;
+    // Se enseña la consola, no el núcleo que la emula: «SNES» dice algo, y
+    // «snes9x» no. Si quien sirve es antiguo y no manda el sistema, se cae al
+    // núcleo antes que dejar la fila muda.
+    li.dataset.sistema = juego.sistema || juego.nucleo;
+    li.classList.toggle('elegido', elegido && juego.url === elegido.url);
+    li.addEventListener('click', () => {
+      elegido = juego;
+      pintarJuegos();
+    });
+    ul.appendChild(li);
+  }
+  if (!lista.length) {
+    // Distinguir «no hay juegos» de «el filtro no encuentra nada»: cada caso es
+    // una frase entera, no un tronco más un añadido, porque en otro idioma esas
+    // piezas no encajan igual.
+    pintarVacio(t(
+      catalogo.length ? 'lobby.juegos.sinFiltro'
+        : $('elegirCarpeta').hidden ? 'lobby.juegos.vacio'
+        : 'lobby.juegos.vacioCarpeta'
+    ));
+  }
+  if (lista.length > 40) {
+    const li = document.createElement('li');
+    li.className = 'vacio';
+    li.textContent = t('lobby.juegos.mas', { n: lista.length - 40 });
+    ul.appendChild(li);
+  }
+}
+
+$('buscar').addEventListener('input', pintarJuegos);
+
+// --- Empezar y cambiar de juego ---------------------------------------------
+
+// La pantalla del host tampoco debe apagarse a media partida (HU-03). En HTTP
+// plano no hay wakeLock nativo, así que se recurre a lo mismo que en el mando.
+const noSleep = new NoSleep();
+
+/** Juego que está cargado en el marco ahora mismo, aunque esté oculto. */
+let enMarcha = null;
+
+function cargarJuego(juego) {
+  if (!juego) return;
+  const marco = $('marco');
+
+  // Si ya está cargado, se vuelve a él sin recargar nada: eso es lo que permite
+  // ir al lobby y volver sin perder la partida.
+  if (enMarcha && enMarcha.url === juego.url) {
+    marco.hidden = false;
+    return;
+  }
+
+  // rom se codifica como los demás parámetros: un nombre con & o # rompería la
+  // carga si se pegara tal cual.
+  marco.src = `./juego.html?core=${encodeURIComponent(juego.nucleo)}` +
+    `&rom=${encodeURIComponent(juego.url)}` +
+    `&nombre=${encodeURIComponent(juego.nombre)}` +
+    `&idioma=${encodeURIComponent(idiomaEmulador())}` +
+    (hilos ? '&hilos=1' : '');
+  marco.hidden = false;
+  enMarcha = juego;
+  // El bus de entrada pasa a apuntar al emulador del marco.
+  marco.addEventListener('load', () => InputBus.usarVentana(marco.contentWindow), { once: true });
+}
+
+/** Entra en modo partida: fuera el lobby, dentro el juego. */
+function entrarEnPartida() {
+  $('arranque').hidden = true;
+  $('diag').hidden = false;
+  $('hud').hidden = false;
+  $('menuPartida').hidden = false;
+  document.body.classList.add('jugando');
+  window.scrollTo(0, 0);
+}
+
+/**
+ * Vuelve al lobby sin cerrar la partida: el marco se oculta pero sigue vivo, y
+ * aparece el botón de seguir jugando. Solo se descarta al elegir otro juego.
+ */
+function volverAlLobby() {
+  $('marco').hidden = true;
+  $('arranque').hidden = false;
+  $('menuPartida').hidden = true;
+  $('opcionesMenu').hidden = true;
+  $('diag').hidden = true;
+  $('hud').hidden = true;
+  document.body.classList.remove('jugando');
+  $('seguirJugando').hidden = !enMarcha;
+  mostrarPaso(2);
+}
+
+$('abrirMenu').addEventListener('click', () => {
+  $('opcionesMenu').hidden = !$('opcionesMenu').hidden;
+});
+
+$('menuLobby').addEventListener('click', volverAlLobby);
+
+$('menuReiniciar').addEventListener('click', () => {
+  $('marco').contentWindow?.EJS_emulator?.gameManager?.restart();
+  $('opcionesMenu').hidden = true;
+});
+
+$('seguirJugando').addEventListener('click', () => {
+  entrarEnPartida();
+  $('marco').hidden = false;
+});
+
+$('empezar').addEventListener('click', async () => {
+  entrarEnPartida();
+  noSleep.enable().catch(() => {});
+
+  // Pantalla completa: es la única forma de que el navegador suelte sus barras,
+  // que en un móvil se comen buena parte de la pantalla. Solo se concede desde
+  // un gesto del usuario, y este clic lo es. Si el navegador se niega (Safari
+  // en iPhone no lo permite), se sigue igual: es una mejora, no un requisito.
+  try {
+    await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+    await screen.orientation?.lock?.('landscape');
+  } catch {
+    /* sin pantalla completa se juega igual, solo con menos sitio */
+  }
+
+  cargarJuego(elegido);
+});
+
+// Elegir la carpeta de juegos. `web/` no sabe nada de Android: solo manda el
+// mensaje, y quien sirve decide si sabe atenderlo.
+$('elegirCarpeta').addEventListener('click', () => net.elegirCarpeta());
+</script>
+</body>
+</html>

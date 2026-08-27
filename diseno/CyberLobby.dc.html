@@ -1,0 +1,164 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #06060c; color: #e8f4ff; font-family: 'Chakra Petch', 'Trebuchet MS', sans-serif; }
+    a { color: #00e5ff; } a:hover { color: #7df9ff; }
+    .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+    .corte { clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); }
+    .escena { position: absolute; inset: 0; overflow: hidden; }
+    .cielo { position: absolute; top: 0; left: 0; right: 0; height: 60%; background: radial-gradient(100% 130% at 50% 100%, #00e5ff26, transparent 70%); }
+    .horizonte { position: absolute; top: 60%; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, #00e5ff, transparent); opacity: 0.35; }
+    .suelo {
+      position: absolute; top: 60%; left: -60%; right: -60%; bottom: -25%;
+      transform: perspective(150px) rotateX(62deg); transform-origin: 50% 0%;
+      background-image:
+        repeating-linear-gradient(90deg, #00e5ff3d 0 1px, transparent 1px 46px),
+        repeating-linear-gradient(0deg, #00e5ff3d 0 1px, transparent 1px 46px);
+      -webkit-mask-image: linear-gradient(180deg, transparent, #000 22%, #000);
+      mask-image: linear-gradient(180deg, transparent, #000 22%, #000);
+    }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 800px; height: 360px; background: #06060c;">
+
+  <div class="escena">
+    <div class="cielo"></div>
+    <div class="suelo"></div>
+    <div class="horizonte"></div>
+  </div>
+
+  <div style="position: relative; height: 100%; box-sizing: border-box; padding: 18px 24px; display: flex; flex-direction: column; gap: 12px;">
+
+    <div style="display: flex; align-items: baseline; gap: 12px;">
+      <h1 style="margin: 0; font-size: 25px; font-weight: 700; letter-spacing: 0.16em; text-shadow: 0 0 18px #00e5ff66;">CONSOLA</h1>
+      <span class="mono" style="font-size: 10px; letter-spacing: 0.2em; color: #39ff7a;">▮ EN LÍNEA</span>
+      <span style="flex-grow: 1;"></span>
+      <span class="mono" style="font-size: 10px; letter-spacing: 0.14em; color: #5b7590;">SALA 01</span>
+    </div>
+
+    <div style="display: flex; gap: 20px; flex-grow: 1; min-height: 0;">
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; flex-shrink: 0;">
+        <div class="corte" style="padding: 9px; background: #e8f4ff; line-height: 0; box-shadow: 0 0 26px #00e5ff44;">
+          <svg width="126" height="126" viewBox="0 0 29 29" shape-rendering="crispEdges" role="img" aria-label="Código QR del mando">
+            <rect width="29" height="29" fill="#e8f4ff"></rect>
+            <sc-for list="{{modulos}}" as="m" hint-placeholder-count="80">
+              <rect x="{{m.x}}" y="{{m.y}}" width="1" height="1" fill="#06060c"></rect>
+            </sc-for>
+          </svg>
+        </div>
+        <span class="mono" style="font-size: 10px; letter-spacing: 0.1em; color: #00e5ff;">192.168.43.1:8080</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 11px; flex-grow: 1; min-width: 0;">
+
+        <div style="display: flex; gap: 10px;">
+          <sc-for list="{{puestos}}" as="p" hint-placeholder-count="4">
+            <div class="corte" style="{{p.estilo}}">
+              <span style="font-size: 21px; font-weight: 700; line-height: 1;">{{p.n}}</span>
+              <span class="mono" style="font-size: 8px; letter-spacing: 0.14em;">{{p.etiqueta}}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #0b1220b8; border: 1px solid #1d2a3d;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5b7590" stroke-width="2.2" stroke-linecap="round">
+            <circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path>
+          </svg>
+          <span class="mono" style="font-size: 11px; color: #5b7590; letter-spacing: 0.08em;">BUSCAR JUEGO</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1; min-height: 0;">
+          <sc-for list="{{juegos}}" as="j" hint-placeholder-count="3">
+            <div style="{{j.estilo}}">
+              <span style="font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{j.nombre}}</span>
+              <span class="mono" style="font-size: 9px; letter-spacing: 0.12em; color: #5b7590; flex-shrink: 0;">{{j.sistema}}</span>
+            </div>
+          </sc-for>
+        </div>
+
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <button class="corte" style="border: 1px solid #39ff7a; background: #0d2417; color: #39ff7a; font-family: inherit; font-size: 15px; font-weight: 700; letter-spacing: 0.16em; padding: 12px 32px; box-shadow: 0 0 24px #39ff7a33;">EMPEZAR</button>
+      <span class="mono" style="font-size: 10px; letter-spacing: 0.1em; color: #5b7590;">2 PUESTOS OPERATIVOS</span>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"conectados":{"editor":"int","default":2,"min":0,"max":4,"section":"Sala"}}'>
+class Component extends DCLogic {
+  modulosQR() {
+    const mods = [];
+    let semilla = 20260819;
+    const azar = () => (semilla = (semilla * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    const enOjo = (x, y) => (x < 8 && y < 8) || (x > 20 && y < 8) || (x < 8 && y > 20);
+    for (let y = 0; y < 29; y++) {
+      for (let x = 0; x < 29; x++) {
+        if (enOjo(x, y)) continue;
+        if (azar() > 0.55) mods.push({ x, y });
+      }
+    }
+    for (const [ox, oy] of [[0, 0], [22, 0], [0, 22]]) {
+      for (let y = 0; y < 7; y++) {
+        for (let x = 0; x < 7; x++) {
+          const borde = x === 0 || y === 0 || x === 6 || y === 6;
+          const centro = x >= 2 && x <= 4 && y >= 2 && y <= 4;
+          if (borde || centro) mods.push({ x: ox + x, y: oy + y });
+        }
+      }
+    }
+    return mods;
+  }
+
+  renderVals() {
+    const colores = ['#ff2e6a', '#00e5ff', '#39ff7a', '#ffb300'];
+    const conectados = this.props.conectados ?? 2;
+
+    const puestos = colores.map((color, i) => {
+      const n = i + 1;
+      const ocupado = n <= conectados;
+      const soportado = n <= 2;
+      const base =
+        'display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;' +
+        'width: 62px; height: 62px; background: #0b1220;';
+      return {
+        n,
+        etiqueta: ocupado ? 'ACTIVO' : soportado ? 'LIBRE' : 'N/D',
+        estilo: ocupado
+          ? `${base} border: 1px solid ${color}; color: ${color}; box-shadow: 0 0 20px ${color}44, inset 0 0 16px ${color}1a;`
+          : `${base} border: 1px solid ${soportado ? '#22304a' : '#141d2e'}; color: ${soportado ? '#5b7590' : '#2b3a52'};`
+      };
+    });
+
+    const filaBase =
+      'display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 10px;';
+    const juegos = [
+      { nombre: 'Balloon Fight', sistema: 'NES', sel: true },
+      { nombre: 'Super Bomberman 4', sistema: 'SNES', sel: false },
+      { nombre: 'Alter Ego', sistema: 'NES', sel: false }
+    ].map((j) => ({
+      ...j,
+      estilo: j.sel
+        ? `${filaBase} background: linear-gradient(90deg, #00e5ff26, transparent); border-left: 2px solid #00e5ff; color: #e8f4ff;`
+        : `${filaBase} border-left: 2px solid transparent; color: #7f97b0;`
+    }));
+
+    return { modulos: this.modulosQR(), puestos, juegos };
+  }
+}
+</script>
+</body>
+</html>

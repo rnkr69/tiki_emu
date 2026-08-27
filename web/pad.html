@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title data-i18n-title="titulo.mando">Mando</title>
+
+<!-- Idioma: se decide antes de pintar. Ver js/idioma-temprano.js. -->
+<script src="./js/idioma-temprano.js"></script>
+
+<link rel="stylesheet" href="./css/pad.css">
+</head>
+<body>
+
+<!-- 1. Elegir jugador ---------------------------------------------------- -->
+<section id="pantallaSlots" class="pantalla">
+  <div class="escena" aria-hidden="true"><div class="suelo"></div></div>
+  <h1 data-i18n="mando.slots.titulo">Elige puesto</h1>
+  <div id="slots"></div>
+  <p id="avisoSlots" class="aviso"></p>
+</section>
+
+<!-- 2. Gira el móvil ----------------------------------------------------- -->
+<!-- En iOS no se puede forzar la orientación, así que esta pantalla no es un
+     respaldo: es la solución. Bloquea el paso al mando hasta que se apaise. -->
+<section id="pantallaGira" class="pantalla" hidden>
+  <div class="escena" aria-hidden="true"><div class="suelo"></div></div>
+  <div class="movil-girando" aria-hidden="true"></div>
+  <h1 data-i18n="mando.gira.titulo">Gira el móvil</h1>
+  <p data-i18n="mando.gira.texto">El mando se sujeta en horizontal, con las dos manos.</p>
+  <p class="nota-pie"><span class="punto"></span><span data-i18n="mando.gira.puesto">Tu puesto sigue guardado</span></p>
+</section>
+
+<!-- 3. El mando ---------------------------------------------------------- -->
+<section id="pantallaMando" class="pantalla" hidden>
+  <div class="escena" aria-hidden="true"><div class="suelo"></div></div>
+
+  <div id="cruceta" class="cruceta" data-i18n-attr="aria-label:mando.cruceta" aria-label="Cruceta">
+    <span class="flecha n"></span><span class="flecha s"></span>
+    <span class="flecha o"></span><span class="flecha e"></span>
+    <span class="centro"></span>
+  </div>
+
+  <div class="centrales">
+    <button class="chico" data-btn="SELECT">SELECT</button>
+    <button class="chico" data-btn="START">START</button>
+    <!-- Guardar y cargar, solo para el jugador 1 (HU-14). Van en el centro,
+         donde no llegan los pulgares jugando, y piden confirmación. -->
+    <div id="partida" hidden>
+      <!-- El texto lo pone conConfirmacion(): es el mismo que restaura al
+           desarmarse, y así vive en un solo sitio. -->
+      <button class="mini" id="guardar"></button>
+      <button class="mini" id="cargar"></button>
+    </div>
+  </div>
+
+  <div class="acciones">
+    <button class="accion b" data-btn="B">B</button>
+    <button class="accion a" data-btn="A">A</button>
+  </div>
+
+  <header id="barra">
+    <span id="etiquetaJugador"></span>
+    <span id="estado">…</span>
+    <span id="latencia"></span>
+    <!-- Solo el jugador 1. Va en la barra superior, lejos de los pulgares, y
+         con confirmación: no puede dispararse en pleno juego (§11). -->
+    <button id="abrirSala" hidden data-i18n="mando.sala">Sala</button>
+  </header>
+</section>
+
+<!-- Menú del jugador 1: expulsar puestos colgados (HU-10). -->
+<section id="pantallaSala" class="pantalla" hidden>
+  <h1 data-i18n="mando.sala.titulo">Sala</h1>
+  <div id="salaSlots"></div>
+  <p class="aviso" id="salaAviso"></p>
+  <button id="cerrarSala" data-i18n="mando.sala.volver">Volver al mando</button>
+</section>
+
+<!-- 4. Estados de error -------------------------------------------------- -->
+<section id="pantallaEstado" class="pantalla" hidden>
+  <div class="escena" aria-hidden="true"><div class="suelo"></div></div>
+  <h1 id="estadoTitulo"></h1>
+  <p id="estadoTexto"></p>
+  <button id="estadoAccion" hidden data-i18n="mando.estado.volver">Volver a elegir</button>
+</section>
+
+<script src="./vendor/nosleep.min.js"></script>
+<script type="module">
+import { NetPad } from './js/net-pad.js';
+import { PadUI } from './js/pad-ui.js';
+import { t, aplicar } from './js/i18n.js';
+
+aplicar();
+
+const $ = (id) => document.getElementById(id);
+const pantallas = {
+  slots: $('pantallaSlots'),
+  gira: $('pantallaGira'),
+  mando: $('pantallaMando'),
+  sala: $('pantallaSala'),
+  estado: $('pantallaEstado')
+};
+
+let miSlot = null;
+let ultimosSlots = [];
+
+// --- Red --------------------------------------------------------------------
+
+const net = new NetPad({
+  onEstado: (e) => {
+    // El valor de `e` es fijo y la lógica de abajo lo compara tal cual; lo que
+    // se traduce es solo su etiqueta.
+    $('estado').textContent = t(`red.estado.${e}`);
+    // Solo se interrumpe la partida si de verdad se ha caído la conexión.
+    if (e === 'desconectado' && miSlot !== null) {
+      mostrarEstado(t('mando.estado.reconectando.titulo'), t('mando.estado.reconectando.texto'));
+    } else if (e === 'conectado' && miSlot !== null && !pantallas.estado.hidden) {
+      comprobarOrientacion();
+    }
+  },
+  onSlots: (slots) => {
+    ultimosSlots = slots;
+    pintarSlots(slots);
+    if (!pantallas.sala.hidden) pintarSala(slots);
+  },
+  onClaim: (slot) => { miSlot = slot; entrarAlMando(); },
+  onError: (code) => manejarError(code),
+  onKicked: () => {
+    miSlot = null;
+    padUI.soltarTodo();
+    document.body.dataset.jugador = '';
+    mostrarEstado(t('mando.estado.expulsado.titulo'),
+      t('mando.estado.expulsado.texto', { n: 1 }), true);
+  }
+});
+net.conectar();
+
+// Asa de diagnóstico: permite inspeccionar máscara y latencias desde la consola
+// del navegador, que en el móvil es lo único que hay a mano.
+window.__net = net;
+
+// --- Elegir jugador ---------------------------------------------------------
+
+function pintarSlots(slots) {
+  const cont = $('slots');
+  cont.innerHTML = '';
+  for (const s of slots) {
+    const b = document.createElement('button');
+    b.className = `slot jugador-${s.n}`;
+    b.dataset.n = s.n;
+    b.disabled = s.taken && s.n !== miSlot;
+    b.innerHTML = `<span class="numero">${s.n}</span><span class="etiqueta">${
+      t(s.taken
+        ? (s.conectado ? 'mando.slots.ocupado' : 'mando.slots.reservado')
+        : 'mando.slots.libre')
+    }</span>`;
+    b.addEventListener('click', () => {
+      $('avisoSlots').textContent = '';
+      net.reclamar(s.n);
+    });
+    cont.appendChild(b);
+  }
+}
+
+function manejarError(code) {
+  // Un código que no conocemos no se le enseña crudo a un invitado: se dice que
+  // algo ha fallado y el código queda como detalle.
+  const texto = t(`error.${code}`);
+  $('avisoSlots').textContent = texto === `error.${code}`
+    ? t('error.desconocido', { codigo: code })
+    : texto;
+  mostrar('slots');
+}
+
+// --- Mando ------------------------------------------------------------------
+
+const padUI = new PadUI({
+  cruceta: $('cruceta'),
+  botones: document.querySelectorAll('[data-btn]'),
+  onCambio: (indice, pulsado) => net.setBoton(indice, pulsado)
+});
+
+// La pantalla del mando no debe apagarse a media partida (HU-13). En HTTP plano
+// no hay wakeLock nativo —no es contexto seguro—, de ahí NoSleep.js.
+const noSleep = new NoSleep();
+
+function entrarAlMando() {
+  document.body.dataset.jugador = miSlot;
+  $('etiquetaJugador').textContent = t('mando.barra.jugador', { n: miSlot });
+  $('abrirSala').hidden = miSlot !== 1;
+  $('partida').hidden = miSlot !== 1;
+  // Se aprovecha el gesto de elegir puesto: pantalla completa, wake lock y
+  // bloqueo de orientación solo se conceden desde una interacción del usuario.
+  // La pantalla completa además libera el sitio que ocupan las barras del
+  // navegador, que en un móvil es mucho.
+  noSleep.enable().catch(() => {});
+  document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })
+    .then(() => screen.orientation?.lock?.('landscape'))
+    .catch(() => { /* iPhone no lo permite; queda la pantalla de girar el móvil */ });
+  comprobarOrientacion();
+}
+
+// --- Guardar y cargar (solo jugador 1) --------------------------------------
+
+// Mismo criterio que la expulsión: dos toques. Cargar una partida por error en
+// plena timba es tan irreversible como que te echen.
+function conConfirmacion(boton, etiqueta, accion) {
+  let armado = false;
+  let temporizador;
+  boton.textContent = etiqueta;
+  boton.addEventListener('click', () => {
+    if (armado) {
+      clearTimeout(temporizador);
+      armado = false;
+      boton.classList.remove('armado');
+      boton.textContent = etiqueta;
+      accion();
+      return;
+    }
+    armado = true;
+    boton.classList.add('armado');
+    boton.textContent = t('mando.confirmar');
+    // Si no se confirma en unos segundos, se desarma solo.
+    temporizador = setTimeout(() => {
+      armado = false;
+      boton.classList.remove('armado');
+      boton.textContent = etiqueta;
+    }, 3000);
+  });
+}
+
+conConfirmacion($('guardar'), t('mando.guardar'), () => net.hotkey('save'));
+conConfirmacion($('cargar'), t('mando.cargar'), () => net.hotkey('load'));
+
+// --- Sala (solo jugador 1) --------------------------------------------------
+
+// Doble toque deliberado: el primero arma la expulsión y el segundo la ejecuta.
+// Un solo toque sería demasiado fácil de disparar sin querer.
+let armado = null;
+
+function pintarSala(slots) {
+  const cont = $('salaSlots');
+  cont.innerHTML = '';
+  for (const s of slots) {
+    if (s.n === miSlot) continue;
+    const b = document.createElement('button');
+    b.className = `slot jugador-${s.n}`;
+    b.disabled = !s.taken;
+    const esperando = armado === s.n;
+    b.classList.toggle('armado', esperando);
+    b.innerHTML = `<span class="numero">${s.n}</span><span class="etiqueta">${
+      t(!s.taken ? 'mando.slots.libre'
+        : esperando ? 'mando.sala.otraVez'
+        : 'mando.sala.sacar')
+    }</span>`;
+    b.addEventListener('click', () => {
+      if (armado === s.n) {
+        net.expulsar(s.n);
+        armado = null;
+        $('salaAviso').textContent = t('mando.sala.liberado', { n: s.n });
+      } else {
+        armado = s.n;
+        $('salaAviso').textContent = t('mando.sala.confirma');
+      }
+      pintarSala(ultimosSlots);
+    });
+    cont.appendChild(b);
+  }
+}
+
+$('abrirSala').addEventListener('click', () => {
+  armado = null;
+  $('salaAviso').textContent = '';
+  padUI.soltarTodo();   // que no se quede nada pulsado al salir del mando
+  pintarSala(ultimosSlots);
+  mostrar('sala');
+});
+
+$('cerrarSala').addEventListener('click', () => comprobarOrientacion());
+
+// --- Orientación ------------------------------------------------------------
+
+function esVertical() {
+  return window.matchMedia('(orientation: portrait)').matches;
+}
+
+function comprobarOrientacion() {
+  if (miSlot === null) return;
+  if (esVertical()) {
+    padUI.soltarTodo();   // no dejar nada pulsado al salir del mando
+    mostrar('gira');
+  } else {
+    mostrar('mando');
+  }
+}
+
+window.addEventListener('resize', comprobarOrientacion);
+window.addEventListener('orientationchange', comprobarOrientacion);
+
+// --- Pantallas --------------------------------------------------------------
+
+function mostrar(cual) {
+  for (const [nombre, el] of Object.entries(pantallas)) el.hidden = nombre !== cual;
+}
+
+function mostrarEstado(titulo, texto, conAccion = false) {
+  $('estadoTitulo').textContent = titulo;
+  $('estadoTexto').textContent = texto;
+  $('estadoAccion').hidden = !conAccion;
+  mostrar('estado');
+}
+
+$('estadoAccion').addEventListener('click', () => {
+  miSlot = null;
+  net.soltar();
+  pintarSlots(ultimosSlots);
+  mostrar('slots');
+});
+
+// --- Trampas conocidas (§10) ------------------------------------------------
+
+document.addEventListener('gesturestart', (ev) => ev.preventDefault());
+document.addEventListener('dblclick', (ev) => ev.preventDefault());
+
+// --- Diagnóstico ------------------------------------------------------------
+
+setInterval(() => {
+  const rtt = net.rttServidor;
+  if (!rtt.n) return;
+  $('latencia').textContent = `${(rtt.percentil(50) / 2).toFixed(0)}/${(rtt.p95 / 2).toFixed(0)} ms`;
+}, 500);
+
+mostrar('slots');
+</script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+# Empaquetado del instalador de Windows.
+#
+# En YAML y no dentro de package.json porque aquí hay decisiones que necesitan
+# explicación, y un package.json no admite comentarios.
+
+appId: com.tikiemu.consola
+productName: tiki_emu
+copyright: GPL-3.0
+
+directories:
+  output: ../paquete/desktop
+  buildResources: recursos
+
+# Dentro del asar va solo el código de esta carpeta. Lo que vive un nivel más
+# arriba —la interfaz y el servidor— no se puede meter aquí: los patrones de
+# `files` no salen del directorio de la aplicación, y lo que se cuele por ahí
+# acaba en un paquete que arranca y no encuentra nada.
+files:
+  - '**/*'
+  - '!recursos/icono.png'
+
+asar: true
+
+# La interfaz y el servidor van junto al ejecutable, fuera del asar.
+#
+# Esto no es un apaño para esquivar lo de arriba: es lo que hay que hacer. Los
+# núcleos del emulador son ficheros de un mega que se sirven por rangos, y
+# fuera del archivo se leen del disco directamente. Y así la ruta relativa
+# `../server-node/servidor.js` que usa servidor-proceso.js funciona igual
+# empaquetada que en desarrollo, porque `app.asar/..` es esta misma carpeta.
+extraResources:
+  - from: ../web
+    to: web
+  - from: ../server-node
+    to: server-node
+    filter:
+      - '**/*'
+      - '!package-lock.json'
+      - '!node_modules'
+
+  # `ws` aparte y nombrado como origen: electron-builder descarta cualquier
+  # node_modules que encuentre recorriendo un recurso extra, y sin esto el
+  # servidor queda sin su única dependencia — desde fuera del asar no se ve la
+  # copia que hay dentro.
+  - from: ../server-node/node_modules/ws
+    to: server-node/node_modules/ws
+
+# `roms/` NO se empaqueta. El proyecto no distribuye juegos, y copiar la carpeta
+# de quien compila metería sus ROMs en el instalador. La app crea la carpeta
+# vacía al primer arranque, y el menú «Abrir la carpeta de juegos» lleva a ella.
+
+win:
+  target: nsis
+  icon: recursos/icono.ico
+  # Sin firma de código: SmartScreen dirá «editor desconocido» la primera vez.
+  # Un certificado cuesta dinero y esto es un proyecto de comunidad.
+  signAndEditExecutable: true
+
+nsis:
+  # Instalación por usuario: sin pedir administrador. Encaja con la decisión de
+  # no tocar el cortafuegos desde el instalador, que sí exigiría elevación.
+  perMachine: false
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: tiki_emu
+  # No se borran los ajustes al desinstalar: la carpeta de juegos que eligió el
+  # usuario no es basura, y reinstalar no debería obligar a elegirla otra vez.
+  deleteAppDataOnUninstall: false
+  artifactName: tiki_emu-${version}-instalador.${ext}

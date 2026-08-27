@@ -1,0 +1,136 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=IBM+Plex+Mono:wght@400;600&display=swap">
+  <style>
+    body { margin: 0; background: #101018; color: #fcfcfc; font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+    a { color: #3cbcfc; } a:hover { color: #a8e0fc; }
+    .bits { font-family: 'Press Start 2P', 'IBM Plex Mono', monospace; }
+    .bisel { box-shadow: inset -4px -4px 0 #00000066, inset 4px 4px 0 #ffffff1f; }
+  </style>
+</helmet>
+
+<div style="width: 800px; height: 360px; box-sizing: border-box; padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; background: #101018;">
+
+  <!-- Cabecera con marco de ventana de juego. -->
+  <div style="display: flex; align-items: center; justify-content: space-between; border: 4px solid #2c2c44; padding: 9px 12px;">
+    <span class="bits" style="font-size: 14px; color: #fcfcfc;">CONSOLA</span>
+    <span style="font-size: 11px; letter-spacing: 0.14em; color: #00a844;">■ SALA ABIERTA</span>
+  </div>
+
+  <div style="display: flex; gap: 18px; flex-grow: 1; min-height: 0;">
+
+    <!-- Emparejamiento -->
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; flex-shrink: 0;">
+      <div style="padding: 8px; background: #fcfcfc; line-height: 0;">
+        <svg width="132" height="132" viewBox="0 0 29 29" shape-rendering="crispEdges" role="img" aria-label="Código QR del mando">
+          <rect width="29" height="29" fill="#fcfcfc"></rect>
+          <sc-for list="{{modulos}}" as="m" hint-placeholder-count="80">
+            <rect x="{{m.x}}" y="{{m.y}}" width="1" height="1" fill="#101018"></rect>
+          </sc-for>
+        </svg>
+      </div>
+      <span class="bits" style="font-size: 7px; color: #3cbcfc;">192.168.43.1</span>
+    </div>
+
+    <!-- Puestos y catálogo -->
+    <div style="display: flex; flex-direction: column; gap: 12px; flex-grow: 1; min-width: 0;">
+
+      <div style="display: flex; gap: 8px;">
+        <sc-for list="{{puestos}}" as="p" hint-placeholder-count="4">
+          <div class="bisel" style="{{p.estilo}}">
+            <span class="bits" style="font-size: 15px;">{{p.n}}</span>
+            <span style="font-size: 8px; letter-spacing: 0.1em;">{{p.etiqueta}}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="border: 4px solid #2c2c44; padding: 8px 10px; display: flex; flex-direction: column; gap: 5px; flex-grow: 1; min-height: 0;">
+        <sc-for list="{{juegos}}" as="j" hint-placeholder-count="3">
+          <div style="{{j.estilo}}">
+            <span style="font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{j.marca}}{{j.nombre}}</span>
+            <span style="font-size: 9px; color: #6c6c84; letter-spacing: 0.1em; flex-shrink: 0;">{{j.sistema}}</span>
+          </div>
+        </sc-for>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <button class="bisel" style="border: none; background: #00a844; color: #fcfcfc; font-family: 'Press Start 2P', monospace; font-size: 11px; padding: 13px 26px;">EMPEZAR</button>
+    <span style="font-size: 11px; color: #6c6c84;">2 JUGADORES MÁXIMO</span>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"conectados":{"editor":"int","default":2,"min":0,"max":4,"section":"Sala"}}'>
+class Component extends DCLogic {
+  modulosQR() {
+    const mods = [];
+    let semilla = 20260819;
+    const azar = () => (semilla = (semilla * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    const enOjo = (x, y) => (x < 8 && y < 8) || (x > 20 && y < 8) || (x < 8 && y > 20);
+    for (let y = 0; y < 29; y++) {
+      for (let x = 0; x < 29; x++) {
+        if (enOjo(x, y)) continue;
+        if (azar() > 0.55) mods.push({ x, y });
+      }
+    }
+    for (const [ox, oy] of [[0, 0], [22, 0], [0, 22]]) {
+      for (let y = 0; y < 7; y++) {
+        for (let x = 0; x < 7; x++) {
+          const borde = x === 0 || y === 0 || x === 6 || y === 6;
+          const centro = x >= 2 && x <= 4 && y >= 2 && y <= 4;
+          if (borde || centro) mods.push({ x: ox + x, y: oy + y });
+        }
+      }
+    }
+    return mods;
+  }
+
+  renderVals() {
+    const colores = ['#d82800', '#0058f8', '#00a844', '#f8b800'];
+    const conectados = this.props.conectados ?? 2;
+
+    const puestos = colores.map((color, i) => {
+      const n = i + 1;
+      const ocupado = n <= conectados;
+      const soportado = n <= 2;
+      const base =
+        'display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;' +
+        'width: 58px; height: 58px;';
+      return {
+        n,
+        etiqueta: ocupado ? 'LISTO' : soportado ? 'LIBRE' : 'N/D',
+        estilo: ocupado
+          ? `${base} background: ${color}; color: #fcfcfc;`
+          : `${base} background: #2c2c44; color: ${soportado ? '#6c6c84' : '#3d3d55'};`
+      };
+    });
+
+    // El cursor es una flecha de texto, como en los menús de la época.
+    const filaBase = 'display: flex; align-items: center; justify-content: space-between; gap: 10px;';
+    const juegos = [
+      { nombre: 'BALLOON FIGHT', sistema: 'NES', sel: true },
+      { nombre: 'SUPER BOMBERMAN 4', sistema: 'SNES', sel: false },
+      { nombre: 'ALTER EGO', sistema: 'NES', sel: false }
+    ].map((j) => ({
+      ...j,
+      marca: j.sel ? '▶ ' : '   ',
+      estilo: `${filaBase} color: ${j.sel ? '#f8b800' : '#a8a8c0'};`
+    }));
+
+    return { modulos: this.modulosQR(), puestos, juegos };
+  }
+}
+</script>
+</body>
+</html>

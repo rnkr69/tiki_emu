@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">tiki_emu</string>
+    <string name="canal_consola">Consola</string>
+    <string name="consola_en_marcha">La consola está en marcha</string>
+    <string name="parar">Parar</string>
+
+    <!-- Pantalla de emergencia si el servidor no levanta. -->
+    <string name="sin_arrancar_titulo">La consola no ha arrancado</string>
+    <string name="sin_arrancar_texto">El servidor no responde en el puerto 8080.</string>
+</resources>

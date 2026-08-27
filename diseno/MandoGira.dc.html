@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #0c0c10; color: #f4f4f6; font-family: 'Space Grotesk', 'Trebuchet MS', sans-serif; }
+    a { color: #74c0fc; } a:hover { color: #a5d8ff; }
+    .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+    /* La animación es decorativa y vive fuera de los controles, así que puede
+       durar más de 100 ms sin leerse como latencia. */
+    @keyframes girar {
+      0%, 35% { transform: rotate(0deg); }
+      55%, 100% { transform: rotate(-90deg); }
+    }
+    .movil { animation: girar 2.4s ease-in-out infinite; }
+  </style>
+</helmet>
+
+<div style="width: 360px; height: 800px; box-sizing: border-box; padding: 40px 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 36px; text-align: center;">
+
+  <div class="movil" style="width: 104px; height: 176px; border: 4px solid #f4f4f6; border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+    <div style="width: 40px; height: 4px; border-radius: 2px; background: #f4f4f6; opacity: 0.5;"></div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <h1 style="margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.02em;">Gira el móvil</h1>
+    <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #adb5bd;">
+      El mando se sujeta en horizontal,<br>con las dos manos.
+    </p>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 999px; background: #131318; border: 1px solid #23232b;">
+    <span style="width: 8px; height: 8px; border-radius: 50%; background: {{color}};"></span>
+    <span class="mono" style="font-size: 10px; letter-spacing: 0.12em; color: #868e96;">JUGADOR {{jugador}} · TU SITIO ESTÁ GUARDADO</span>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"jugador":{"editor":"enum","options":["1","2","3","4"],"default":"2","section":"Mando"}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const colores = { 1: '#f03e3e', 2: '#1c7ed6', 3: '#37b24d', 4: '#f59f00' };
+    const jugador = String(this.props.jugador ?? '2');
+    return { jugador, color: colores[jugador] || colores[1] };
+  }
+}
+</script>
+</body>
+</html>

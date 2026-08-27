@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Juego</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  #game { width: 100%; height: 100%; }
+  .ejs_virtualGamepad_parent { display: none !important; }
+
+  /* La barra de controles de EmulatorJS se quita de raíz. La opción
+     `menu-bar-button: hidden` no basta: es un ajuste por defecto del menú, que
+     el usuario puede revertir y que EmulatorJS recuerda. Aquí el menú de
+     partida lo pone el lobby, que es quien tiene el marco. */
+  .ejs_menu_bar { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- El emulador vive aquí, dentro de un marco, y no en la página del lobby.
+     Así cambiar de juego es cambiar la dirección de este marco: la página de
+     al lado conserva su conexión y ningún mando se cae (HU-15). -->
+
+<div id="game"></div>
+
+<script>
+  const params = new URLSearchParams(location.search);
+  window.EJS_player = '#game';
+  window.EJS_core = params.get('core') || 'fceumm';
+  window.EJS_pathtodata = './vendor/emulatorjs/data/';
+  window.EJS_gameUrl = params.get('rom') || '/roms/demo.nes';
+  window.EJS_gameName = params.get('nombre') || '';
+  // EmulatorJS decide su idioma por su cuenta leyendo el del sistema. Se le
+  // impone el que ha elegido el lobby para que sus menús y sus mensajes de
+  // carga no salgan en un idioma distinto al del resto de la consola.
+  window.EJS_language = params.get('idioma') || 'es-ES';
+  // Núcleos con hilos. No se deducen de tener SharedArrayBuffer: EmulatorJS los
+  // decide con esta bandera, y pedirlos cuando falta el fichero del núcleo deja
+  // el juego sin arrancar. Por eso lo dice quien sirve, que sabe qué tiene.
+  //
+  // Se comprueba además aquí que el navegador los soporte de verdad: pedirlos
+  // sin SharedArrayBuffer no degrada, aborta el juego. Y esta página se puede
+  // acabar abriendo desde otro equipo por la IP de red, donde no hay contexto
+  // seguro por mucho que el servidor mande las cabeceras.
+  window.EJS_threads = params.get('hilos') === '1'
+    && typeof window.SharedArrayBuffer === 'function';
+  // Arranca solo: el gesto del usuario ya se dio al elegir el juego en el
+  // lobby, así que el audio no queda bloqueado.
+  window.EJS_startOnLoaded = true;
+  window.EJS_defaultOptions = {
+    'virtual-gamepad': 'disabled',
+    'menu-bar-button': 'hidden'
+  };
+</script>
+<script src="./vendor/emulatorjs/data/loader.js"></script>
+</body>
+</html>

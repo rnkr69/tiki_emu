@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #0c0c10; color: #f4f4f6; font-family: 'Space Grotesk', 'Trebuchet MS', sans-serif; }
+    a { color: #74c0fc; } a:hover { color: #a5d8ff; }
+    .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+  </style>
+</helmet>
+
+<!-- Horizontal, como se sujeta: pulgares en las esquinas inferiores, índices en
+     el borde de arriba. El centro se deja libre a propósito: ahí se apoyan las
+     manos y ahí vive la barra de gestos del sistema. -->
+<div style="position: relative; width: 800px; height: 360px; box-sizing: border-box; padding: 26px 30px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; background: {{fondo}};">
+
+  <!-- Barra: identidad del jugador y latencia, fuera del alcance del pulgar. -->
+  <div style="position: absolute; top: 8px; left: 0; right: 0; display: flex; align-items: center; justify-content: center; gap: 14px;">
+    <span class="mono" style="font-size: 11px; font-weight: 500; letter-spacing: 0.12em; color: {{color}};">JUGADOR {{jugador}}</span>
+    <span class="mono" style="font-size: 10px; color: #4d5157;">12/19 ms</span>
+    <div style="display: flex; gap: 5px;">
+      <span class="mono" style="font-size: 9px; letter-spacing: 0.1em; color: #6c757d; border: 1px solid #2f3238; border-radius: 5px; padding: 3px 7px;">SALA</span>
+    </div>
+  </div>
+
+  <!-- Cruceta: una sola zona táctil. La dirección sale de dónde está el dedo,
+       que es lo que hace posibles las diagonales. -->
+  <div style="justify-self: start; position: relative; width: 190px; height: 190px; border-radius: 50%; background: #15151b; border: 2px solid #26262f; box-shadow: inset 0 4px 14px #00000080;">
+    <div style="position: absolute; top: 14%; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 21px solid transparent; border-right: 21px solid transparent; border-bottom: 26px solid {{color}};"></div>
+    <div style="position: absolute; bottom: 14%; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 21px solid transparent; border-right: 21px solid transparent; border-top: 26px solid #3d4046;"></div>
+    <div style="position: absolute; left: 14%; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-top: 21px solid transparent; border-bottom: 21px solid transparent; border-right: 26px solid {{color}};"></div>
+    <div style="position: absolute; right: 14%; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-top: 21px solid transparent; border-bottom: 21px solid transparent; border-left: 26px solid #3d4046;"></div>
+    <div style="position: absolute; inset: 36%; border-radius: 50%; background: #1d1d25; border: 1px solid #2b2b34;"></div>
+  </div>
+
+  <!-- Centro: nada que se pueda pulsar sin querer. START y SELECT, y las
+       acciones de partida solo para el jugador 1, con confirmación. -->
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 0 24px;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <button style="min-width: 96px; padding: 9px 0; border: none; border-radius: 20px; background: #23232c; color: #ced4da; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.12em; box-shadow: inset 0 -2px 0 #00000055;">SELECT</button>
+      <button style="min-width: 96px; padding: 9px 0; border: none; border-radius: 20px; background: #23232c; color: #ced4da; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.12em; box-shadow: inset 0 -2px 0 #00000055;">START</button>
+    </div>
+    <sc-if value="{{esJugador1}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; gap: 6px; margin-top: 2px;">
+        <span class="mono" style="font-size: 9px; letter-spacing: 0.1em; color: #6c757d; border: 1px solid #2f3238; border-radius: 14px; padding: 5px 9px;">GUARDAR</span>
+        <span class="mono" style="font-size: 9px; letter-spacing: 0.1em; color: #6c757d; border: 1px solid #2f3238; border-radius: 14px; padding: 5px 9px;">CARGAR</span>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- Acciones: A más alta que B, como en el mando original. -->
+  <div style="justify-self: end; display: flex; align-items: center; gap: 18px;">
+    <button style="width: 92px; height: 92px; align-self: flex-end; border: none; border-radius: 50%; background: #23232c; color: #f4f4f6; font-family: inherit; font-size: 30px; font-weight: 700; box-shadow: inset 0 -4px 0 #00000066;">B</button>
+    <button style="width: 106px; height: 106px; align-self: flex-start; border: none; border-radius: 50%; background: {{color}}; color: #fff; font-family: inherit; font-size: 34px; font-weight: 700; box-shadow: inset 0 -5px 0 #00000055, 0 0 34px {{halo}};">A</button>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"jugador":{"editor":"enum","options":["1","2","3","4"],"default":"1","section":"Mando"},"esJugador1":{"editor":"boolean","default":true,"section":"Mando"}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const colores = { 1: '#f03e3e', 2: '#1c7ed6', 3: '#37b24d', 4: '#f59f00' };
+    const jugador = String(this.props.jugador ?? '1');
+    const color = colores[jugador] || colores[1];
+    return {
+      jugador,
+      color,
+      halo: `${color}33`,
+      // Un tinte casi imperceptible del color del jugador: identifica el mando
+      // de un vistazo sin restar contraste a los controles.
+      fondo: `radial-gradient(120% 90% at 50% 0%, ${color}14, #0c0c10 60%)`,
+      esJugador1: this.props.esJugador1 !== false
+    };
+  }
+}
+</script>
+</body>
+</html>

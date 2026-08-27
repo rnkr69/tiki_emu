@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Inglés. El idioma por defecto es el español, en res/values/strings.xml. -->
+<resources>
+    <!-- El nombre del proyecto no se traduce. -->
+    <string name="canal_consola">Console</string>
+    <string name="consola_en_marcha">The console is running</string>
+    <string name="parar">Stop</string>
+
+    <string name="sin_arrancar_titulo">The console did not start</string>
+    <string name="sin_arrancar_texto">The server is not answering on port 8080.</string>
+</resources>

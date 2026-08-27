@@ -1,0 +1,163 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body {
+      margin: 0;
+      background: #0c0c10;
+      color: #f4f4f6;
+      font-family: 'Space Grotesk', 'Trebuchet MS', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #74c0fc; }
+    a:hover { color: #a5d8ff; }
+    .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+    /* Rejilla de fondo: da textura sin competir con el contenido. */
+    .rejilla {
+      background-image:
+        linear-gradient(#ffffff08 1px, transparent 1px),
+        linear-gradient(90deg, #ffffff08 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+  </style>
+</helmet>
+
+<div class="rejilla" style="width: 800px; height: 360px; box-sizing: border-box; padding: 20px 24px; display: flex; gap: 24px; align-items: stretch;">
+
+  <!-- Emparejamiento -->
+  <div style="display: flex; flex-direction: column; gap: 12px; align-items: center; flex-shrink: 0;">
+    <div style="padding: 10px; background: #fff; border-radius: 10px; line-height: 0;">
+      <svg width="150" height="150" viewBox="0 0 29 29" shape-rendering="crispEdges" role="img" aria-label="Código QR del mando">
+        <rect width="29" height="29" fill="#fff"></rect>
+        <sc-for list="{{modulos}}" as="m" hint-placeholder-count="80">
+          <rect x="{{m.x}}" y="{{m.y}}" width="1" height="1" fill="#0c0c10"></rect>
+        </sc-for>
+      </svg>
+    </div>
+    <div style="text-align: center;">
+      <div style="font-size: 13px; font-weight: 500; color: #f4f4f6;">Escanea para jugar</div>
+      <div class="mono" style="font-size: 11px; color: #74c0fc; margin-top: 2px;">192.168.43.1:8080</div>
+    </div>
+  </div>
+
+  <!-- Sala y catálogo -->
+  <div style="display: flex; flex-direction: column; gap: 14px; flex-grow: 1; min-width: 0;">
+
+    <div style="display: flex; align-items: baseline; gap: 10px;">
+      <h1 style="margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.02em;">CONSOLA</h1>
+      <span class="mono" style="font-size: 10px; color: #6c757d; letter-spacing: 0.1em;">SALA ABIERTA</span>
+    </div>
+
+    <!-- Puestos -->
+    <div style="display: flex; gap: 8px;">
+      <sc-for list="{{puestos}}" as="p" hint-placeholder-count="4">
+        <div style="{{p.estilo}}">
+          <span style="font-size: 22px; font-weight: 700; line-height: 1;">{{p.n}}</span>
+          <span class="mono" style="font-size: 8px; letter-spacing: 0.12em;">{{p.etiqueta}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <!-- Catálogo -->
+    <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1; min-height: 0;">
+      <div style="display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: #16161c; border: 1px solid #2a2a33; border-radius: 8px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2.2" stroke-linecap="round">
+          <circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path>
+        </svg>
+        <span style="font-size: 12px; color: #6c757d;">Buscar juego…</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 3px;">
+        <sc-for list="{{juegos}}" as="j" hint-placeholder-count="3">
+          <div style="{{j.estilo}}">
+            <span style="font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{j.nombre}}</span>
+            <span class="mono" style="font-size: 8px; color: #5c636a; letter-spacing: 0.1em; flex-shrink: 0;">{{j.sistema}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- Acción -->
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <button style="border: none; border-radius: 8px; background: #2f9e44; color: #fff; font-family: inherit; font-size: 15px; font-weight: 700; letter-spacing: 0.02em; padding: 11px 30px; box-shadow: inset 0 -3px 0 #00000040;">EMPEZAR</button>
+      <span style="font-size: 11px; color: #6c757d;">Con este emulador juegan dos personas</span>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"conectados":{"editor":"int","default":2,"min":0,"max":4,"section":"Sala"}}'>
+class Component extends DCLogic {
+  // Patrón de QR determinista: es un marcador de posición honesto, no un
+  // código real. Semilla fija para que no cambie entre renders.
+  modulosQR() {
+    const mods = [];
+    let semilla = 20260819;
+    const azar = () => (semilla = (semilla * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    const enOjo = (x, y) =>
+      (x < 8 && y < 8) || (x > 20 && y < 8) || (x < 8 && y > 20);
+    for (let y = 0; y < 29; y++) {
+      for (let x = 0; x < 29; x++) {
+        if (enOjo(x, y)) continue;
+        if (azar() > 0.55) mods.push({ x, y });
+      }
+    }
+    // Los tres ojos de posición, dibujados a mano.
+    for (const [ox, oy] of [[0, 0], [22, 0], [0, 22]]) {
+      for (let y = 0; y < 7; y++) {
+        for (let x = 0; x < 7; x++) {
+          const borde = x === 0 || y === 0 || x === 6 || y === 6;
+          const centro = x >= 2 && x <= 4 && y >= 2 && y <= 4;
+          if (borde || centro) mods.push({ x: ox + x, y: oy + y });
+        }
+      }
+    }
+    return mods;
+  }
+
+  renderVals() {
+    const colores = ['#f03e3e', '#1c7ed6', '#37b24d', '#f59f00'];
+    const conectados = this.props.conectados ?? 2;
+
+    const puestos = colores.map((color, i) => {
+      const n = i + 1;
+      const ocupado = n <= conectados;
+      const soportado = n <= 2;
+      const base =
+        'display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;' +
+        'width: 60px; height: 60px; border-radius: 12px; background: #16161c;';
+      const estilo = ocupado
+        ? `${base} border: 2px solid ${color}; color: ${color}; box-shadow: inset 0 0 20px ${color}22;`
+        : soportado
+          ? `${base} border: 2px solid #2f3238; color: #495057;`
+          : `${base} border: 2px dashed #26262e; color: #35393f; opacity: 0.55;`;
+      return { n, estilo, etiqueta: ocupado ? 'LISTO' : soportado ? 'LIBRE' : 'SIN USO' };
+    });
+
+    const filaBase =
+      'display: flex; align-items: center; justify-content: space-between; gap: 10px;' +
+      'padding: 6px 10px; border-radius: 6px;';
+    const juegos = [
+      { nombre: 'Balloon Fight', sistema: 'NES', sel: true },
+      { nombre: 'Super Bomberman 4', sistema: 'SNES', sel: false },
+      { nombre: 'Alter Ego', sistema: 'NES', sel: false }
+    ].map((j) => ({
+      ...j,
+      estilo: j.sel
+        ? `${filaBase} background: #1c7ed622; border-left: 3px solid #1c7ed6; color: #fff;`
+        : `${filaBase} border-left: 3px solid transparent; color: #adb5bd;`
+    }));
+
+    return { modulos: this.modulosQR(), puestos, juegos };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+# Finales de línea. El proyecto se desarrolla en Windows pero corre en Android y
+# en Termux, así que hay ficheros que se rompen si se les cuela un CRLF.
+
+# Por defecto, normalizar el texto al confirmar y dejar que cada sistema use lo
+# suyo al sacarlo.
+* text=auto
+
+# Estos van SIEMPRE con LF pase lo que pase: un script de shell con retornos de
+# carro no arranca, y `gradlew` es lo primero que ejecuta quien clona esto.
+*.sh          text eol=lf
+gradlew       text eol=lf
+*.properties  text eol=lf
+
+# Binarios: que git no los toque ni intente mezclarlos.
+*.png         binary
+*.ico         binary
+*.jpg         binary
+*.data        binary
+*.wasm        binary
+*.nes         binary
+*.sfc         binary
+*.smc         binary
+*.gb          binary
+*.gbc         binary
+*.gba         binary
+*.zip         binary
+*.jar         binary
+*.apk         binary
+*.woff2       binary
+
+# Lo vendorizado no ensucia las estadísticas del repositorio ni las diferencias:
+# es código de terceros que no se revisa aquí.
+web/vendor/** linguist-vendored

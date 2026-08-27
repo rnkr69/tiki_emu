@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #06060c; color: #e8f4ff; font-family: 'Chakra Petch', 'Trebuchet MS', sans-serif; }
+    a { color: #00e5ff; } a:hover { color: #7df9ff; }
+    .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+    .corte { clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px); }
+    .escena { position: absolute; inset: 0; overflow: hidden; }
+    .cielo { position: absolute; top: 0; left: 0; right: 0; height: 60%; background: radial-gradient(100% 120% at 50% 100%, #00e5ff22, transparent 70%); }
+    .horizonte { position: absolute; top: 60%; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, #00e5ff, transparent); opacity: 0.35; }
+    .suelo {
+      position: absolute; top: 60%; left: -120%; right: -120%; bottom: -30%;
+      transform: perspective(150px) rotateX(62deg); transform-origin: 50% 0%;
+      background-image:
+        repeating-linear-gradient(90deg, #00e5ff3d 0 1px, transparent 1px 46px),
+        repeating-linear-gradient(0deg, #00e5ff3d 0 1px, transparent 1px 46px);
+      -webkit-mask-image: linear-gradient(180deg, transparent, #000 22%, #000);
+      mask-image: linear-gradient(180deg, transparent, #000 22%, #000);
+    }
+  </style>
+</helmet>
+
+<!-- Vertical: es como llega el invitado tras escanear el QR. -->
+<div style="position: relative; width: 360px; height: 800px; background: #06060c;">
+
+  <div class="escena">
+    <div class="cielo"></div>
+    <div class="suelo"></div>
+    <div class="horizonte"></div>
+  </div>
+
+  <div style="position: relative; height: 100%; box-sizing: border-box; padding: 40px 24px 32px; display: flex; flex-direction: column; gap: 26px;">
+
+    <div style="display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center;">
+      <span class="mono" style="font-size: 10px; letter-spacing: 0.2em; color: #39ff7a;">▮ CONECTADO</span>
+      <h1 style="margin: 0; font-size: 27px; font-weight: 700; letter-spacing: 0.1em; text-shadow: 0 0 20px #00e5ff44;">ELIGE PUESTO</h1>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
+      <sc-for list="{{puestos}}" as="p" hint-placeholder-count="4">
+        <div class="corte" style="{{p.estilo}}">
+          <span style="font-size: 46px; font-weight: 700; line-height: 1;">{{p.n}}</span>
+          <span class="mono" style="font-size: 9px; letter-spacing: 0.18em;">{{p.etiqueta}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <p style="margin: 0; text-align: center; font-size: 13px; line-height: 1.6; color: #7f97b0;">
+      Toca un puesto libre.<br>Después gira el móvil.
+    </p>
+
+    <div style="flex-grow: 1;"></div>
+
+    <div style="display: flex; align-items: center; justify-content: center; gap: 9px; padding: 11px; border: 1px solid #1d2a3d; background: #0b1220a0;">
+      <span style="width: 7px; height: 7px; background: #ffb300; box-shadow: 0 0 10px #ffb300;"></span>
+      <span class="mono" style="font-size: 10px; letter-spacing: 0.1em; color: #7f97b0;">PUESTOS 3 Y 4 NO OPERATIVOS</span>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"ocupados":{"editor":"int","default":1,"min":0,"max":4,"section":"Sala"}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const colores = ['#ff2e6a', '#00e5ff', '#39ff7a', '#ffb300'];
+    const ocupados = this.props.ocupados ?? 1;
+
+    const puestos = colores.map((color, i) => {
+      const n = i + 1;
+      const ocupado = n <= ocupados;
+      const soportado = n <= 2;
+      const base =
+        'display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;' +
+        'height: 130px; background: #0b1220;';
+      if (ocupado) {
+        return { n, etiqueta: 'OCUPADO', estilo: `${base} border: 1px solid #1d2a3d; color: #33465e;` };
+      }
+      return {
+        n,
+        etiqueta: soportado ? 'LIBRE' : 'N/D',
+        // Solo lo que se puede tocar se enciende: es lo que el invitado busca.
+        estilo: soportado
+          ? `${base} border: 1px solid ${color}; color: ${color};` +
+            `box-shadow: 0 0 26px ${color}44, inset 0 0 26px ${color}1a; text-shadow: 0 0 16px ${color};`
+          : `${base} border: 1px dashed #1d2a3d; color: #2b3a52;`
+      };
+    });
+
+    return { puestos };
+  }
+}
+</script>
+</body>
+</html>

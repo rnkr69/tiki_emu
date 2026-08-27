@@ -1,0 +1,19 @@
+{
+  "name": "tiki-emu-escritorio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "tiki_emu para PC: la misma consola, con el ordenador como pantalla.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --config electron-builder.yml"
+  },
+  "devDependencies": {
+    "electron": "^40.4.0",
+    "electron-builder": "^26.0.12"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

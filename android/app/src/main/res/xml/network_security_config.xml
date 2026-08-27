@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Desde Android 9 el tráfico HTTP sin cifrar está prohibido por defecto, y el
+  WebView falla con ERR_CLEARTEXT_NOT_PERMITTED al abrir el servidor local.
+
+  Se permite solo para el propio dispositivo. Todo lo demás sigue exigiendo
+  HTTPS, que es lo razonable: aquí no hay nada que cifrar porque el tráfico no
+  sale del teléfono.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>

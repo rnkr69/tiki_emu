@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #0c0c10; color: #f4f4f6; font-family: 'Space Grotesk', 'Trebuchet MS', sans-serif; }
+    a { color: #74c0fc; } a:hover { color: #a5d8ff; }
+    .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+    @keyframes latido { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+    .latido { animation: latido 1.4s ease-in-out infinite; }
+  </style>
+</helmet>
+
+<!-- Los cuatro estados juntos, para juzgarlos como familia: mismo esqueleto,
+     lo único que cambia es el color del aviso y si hay salida o no. -->
+<div style="width: 800px; height: 620px; box-sizing: border-box; padding: 24px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px;">
+
+  <sc-for list="{{estados}}" as="e" hint-placeholder-count="4">
+    <div style="display: flex; flex-direction: column;">
+      <span class="mono" style="font-size: 9px; letter-spacing: 0.14em; color: #5c636a; margin-bottom: 6px;">{{e.rotulo}}</span>
+      <div style="{{e.marco}}">
+        <div style="{{e.icono}}">
+          <span style="font-size: 22px; line-height: 1;">{{e.simbolo}}</span>
+        </div>
+        <h2 style="margin: 0; font-size: 21px; font-weight: 700; letter-spacing: -0.01em;">{{e.titulo}}</h2>
+        <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #9aa0a6; max-width: 230px;">{{e.texto}}</p>
+        <sc-if value="{{e.accion}}" hint-placeholder-val="{{ true }}">
+          <button style="{{e.botonEstilo}}">{{e.accion}}</button>
+        </sc-if>
+      </div>
+    </div>
+  </sc-for>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  renderVals() {
+    const marco =
+      'flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;' +
+      'gap: 12px; text-align: center; padding: 26px 20px; border-radius: 14px; background: #101015;';
+    const iconoBase =
+      'display: flex; align-items: center; justify-content: center;' +
+      'width: 46px; height: 46px; border-radius: 50%;';
+    const boton =
+      'border: none; border-radius: 8px; padding: 11px 22px; font-family: inherit;' +
+      'font-size: 13px; font-weight: 700; color: #fff; margin-top: 4px;';
+
+    const estados = [
+      {
+        rotulo: 'RECONECTANDO',
+        simbolo: '⟳',
+        titulo: 'Reconectando',
+        texto: 'Se ha perdido la conexión. Vuelve sola en cuanto se recupere.',
+        // Sin botón: no hay nada que el jugador pueda hacer, y ofrecerle un
+        // botón inútil solo genera toques nerviosos.
+        accion: null,
+        color: '#f59f00'
+      },
+      {
+        rotulo: 'EXPULSADO',
+        simbolo: '⊘',
+        titulo: 'Te han sacado',
+        texto: 'El jugador 1 ha liberado tu puesto.',
+        accion: 'Elegir otro puesto',
+        color: '#f03e3e'
+      },
+      {
+        rotulo: 'SALA LLENA',
+        simbolo: '●',
+        titulo: 'Sala completa',
+        texto: 'Los cuatro puestos están ocupados ahora mismo.',
+        accion: 'Ver puestos',
+        color: '#1c7ed6'
+      },
+      {
+        rotulo: 'SERVIDOR CAÍDO',
+        simbolo: '⚡',
+        titulo: 'Consola apagada',
+        texto: 'Nadie está sirviendo la partida. Pídele al anfitrión que la abra.',
+        accion: null,
+        color: '#868e96'
+      }
+    ];
+
+    return {
+      estados: estados.map((e) => ({
+        ...e,
+        marco: `${marco} border: 1px solid ${e.color}33;`,
+        icono: `${iconoBase} background: ${e.color}1f; color: ${e.color};` +
+          (e.accion ? '' : ' animation: latido 1.4s ease-in-out infinite;'),
+        botonEstilo: `${boton} background: ${e.color};`
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

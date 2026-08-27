@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #0c0c10; color: #f4f4f6; font-family: 'Space Grotesk', 'Trebuchet MS', sans-serif; }
+    a { color: #74c0fc; } a:hover { color: #a5d8ff; }
+    .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+  </style>
+</helmet>
+
+<!-- Vertical: es como llega el invitado tras escanear el QR. Debe entenderse
+     en dos segundos y sin leer instrucciones. -->
+<div style="width: 360px; height: 800px; box-sizing: border-box; padding: 32px 24px; display: flex; flex-direction: column; gap: 28px;">
+
+  <div style="display: flex; flex-direction: column; gap: 6px; align-items: center; text-align: center;">
+    <span class="mono" style="font-size: 10px; color: #6c757d; letter-spacing: 0.16em;">CONSOLA · CONECTADO</span>
+    <h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.02em;">Elige jugador</h1>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;">
+    <sc-for list="{{puestos}}" as="p" hint-placeholder-count="4">
+      <div style="{{p.estilo}}">
+        <span style="font-size: 48px; font-weight: 700; line-height: 1;">{{p.n}}</span>
+        <span class="mono" style="font-size: 10px; letter-spacing: 0.14em;">{{p.etiqueta}}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <p style="margin: 0; text-align: center; font-size: 13px; line-height: 1.5; color: #868e96;">
+    Toca un número libre.<br>Después gira el móvil.
+  </p>
+
+  <div style="flex-grow: 1;"></div>
+
+  <div style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border: 1px solid #23232b; border-radius: 10px;">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59f00" stroke-width="2" stroke-linecap="round">
+      <circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16.5v.01"></path>
+    </svg>
+    <span style="font-size: 12px; color: #adb5bd;">Los puestos 3 y 4 aún no funcionan</span>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"ocupados":{"editor":"int","default":1,"min":0,"max":4,"section":"Sala"}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const colores = ['#f03e3e', '#1c7ed6', '#37b24d', '#f59f00'];
+    const ocupados = this.props.ocupados ?? 1;
+
+    const puestos = colores.map((color, i) => {
+      const n = i + 1;
+      const ocupado = n <= ocupados;
+      const soportado = n <= 2;
+      const base =
+        'display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;' +
+        'height: 128px; border-radius: 16px;';
+      if (ocupado) {
+        return {
+          n,
+          etiqueta: 'OCUPADO',
+          estilo: `${base} background: #131318; border: 2px solid #2a2a33; color: #3d4046;`
+        };
+      }
+      return {
+        n,
+        etiqueta: soportado ? 'LIBRE' : 'SIN USO',
+        estilo: soportado
+          // Un puesto libre es lo único que invita a tocar: color pleno.
+          ? `${base} background: ${color}; border: 2px solid ${color}; color: #fff; box-shadow: 0 6px 0 #00000055;`
+          : `${base} background: #131318; border: 2px dashed #2a2a33; color: #45484e; opacity: 0.6;`
+      };
+    });
+
+    return { puestos };
+  }
+}
+</script>
+</body>
+</html>

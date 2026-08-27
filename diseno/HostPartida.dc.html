@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #000; color: #f4f4f6; font-family: 'Space Grotesk', 'Trebuchet MS', sans-serif; }
+    a { color: #74c0fc; } a:hover { color: #a5d8ff; }
+    .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 800px; height: 360px; background: #000; overflow: hidden;">
+
+  <!-- El juego manda: ocupa todo, con las bandas que deja el 4:3 del NES. -->
+  <div style="position: absolute; inset: 0; display: flex; justify-content: center;">
+    <div style="width: 480px; height: 360px; background: linear-gradient(#1d3f6e 0%, #1d3f6e 62%, #2f7d32 62%, #2f7d32 100%); position: relative;">
+      <div style="position: absolute; left: 40px; bottom: 100px; width: 26px; height: 34px; background: #f8f9fa; border-radius: 3px;"></div>
+      <div style="position: absolute; left: 150px; bottom: 138px; width: 120px; height: 16px; background: #d9480f;"></div>
+      <div style="position: absolute; left: 300px; bottom: 100px; width: 90px; height: 16px; background: #d9480f;"></div>
+      <div style="position: absolute; left: 210px; bottom: 100px; width: 22px; height: 30px; background: #ffd43b; border-radius: 3px;"></div>
+      <div style="position: absolute; top: 18px; left: 20px; color: #fff; font-size: 13px; letter-spacing: 0.14em;" class="mono">P1 000200</div>
+      <div style="position: absolute; top: 18px; right: 20px; color: #fff; font-size: 13px; letter-spacing: 0.14em;" class="mono">P2 000150</div>
+    </div>
+  </div>
+
+  <!-- Indicador de mandos: discreto, arriba a la derecha, se desvanece solo. -->
+  <div style="position: absolute; top: 12px; right: 14px; display: flex; gap: 6px;">
+    <sc-for list="{{fichas}}" as="f" hint-placeholder-count="2">
+      <div style="{{f.estilo}}">{{f.n}}</div>
+    </sc-for>
+  </div>
+
+  <!-- Diagnóstico plegable: información técnica sin robar protagonismo. -->
+  <div class="mono" style="position: absolute; top: 12px; left: 14px; display: flex; align-items: center; gap: 10px; padding: 5px 9px; background: #000000b0; border: 1px solid #ffffff14; border-radius: 6px; font-size: 10px; color: #868e96; letter-spacing: 0.04em;">
+    <span style="color: #51cf66;">●</span>
+    <span>J1 12/19 ms</span>
+    <span>J2 14/22 ms</span>
+    <span style="color: #495057;">0 desc</span>
+  </div>
+
+  <!-- Confirmación de lo que pide el mando: aparece, se lee y se va. -->
+  <div style="position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); padding: 8px 20px; background: #000000cc; border: 1px solid #ffffff1a; border-radius: 999px; font-size: 13px; font-weight: 500;">
+    Partida guardada
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"mandos":{"editor":"int","default":2,"min":1,"max":4,"section":"Partida"}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const colores = ['#f03e3e', '#1c7ed6', '#37b24d', '#f59f00'];
+    const n = this.props.mandos ?? 2;
+    const fichas = colores.slice(0, n).map((color, i) => ({
+      n: i + 1,
+      estilo:
+        'display: flex; align-items: center; justify-content: center;' +
+        'width: 22px; height: 22px; border-radius: 50%; font-size: 12px; font-weight: 700;' +
+        `background: ${color}; color: #fff; box-shadow: 0 0 0 2px #00000060;`
+    }));
+    return { fichas };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #000; color: #e8f4ff; font-family: 'Chakra Petch', 'Trebuchet MS', sans-serif; }
+    a { color: #00e5ff; } a:hover { color: #7df9ff; }
+    .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+    .corte { clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
+  </style>
+</helmet>
+
+<!-- En partida manda el juego: aquí la estética se retira. El suelo en fuga
+     solo asoma en las bandas que deja el 4:3, para que el marco siga siendo
+     reconocible sin robar atención. -->
+<div style="position: relative; width: 800px; height: 360px; background: #06060c; overflow: hidden;">
+
+  <div style="position: absolute; inset: 0; overflow: hidden;">
+    <div style="position: absolute; top: 60%; left: -60%; right: -60%; bottom: -25%; transform: perspective(150px) rotateX(62deg); transform-origin: 50% 0%; background-image: repeating-linear-gradient(90deg, #00e5ff26 0 1px, transparent 1px 46px), repeating-linear-gradient(0deg, #00e5ff26 0 1px, transparent 1px 46px); -webkit-mask-image: linear-gradient(180deg, transparent, #000 22%, #000); mask-image: linear-gradient(180deg, transparent, #000 22%, #000);"></div>
+    <div style="position: absolute; top: 60%; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, #00e5ff99, transparent);"></div>
+  </div>
+
+  <!-- El juego, centrado, con un filo de neón que lo separa del fondo. -->
+  <div style="position: absolute; inset: 0; display: flex; justify-content: center;">
+    <div style="width: 480px; height: 360px; background: linear-gradient(#1d3f6e 0%, #1d3f6e 62%, #2f7d32 62%, #2f7d32 100%); position: relative; box-shadow: 0 0 0 1px #00e5ff55, 0 0 40px #00e5ff22;">
+      <div style="position: absolute; left: 40px; bottom: 100px; width: 26px; height: 34px; background: #f8f9fa; border-radius: 3px;"></div>
+      <div style="position: absolute; left: 150px; bottom: 138px; width: 120px; height: 16px; background: #d9480f;"></div>
+      <div style="position: absolute; left: 300px; bottom: 100px; width: 90px; height: 16px; background: #d9480f;"></div>
+      <div style="position: absolute; left: 210px; bottom: 100px; width: 22px; height: 30px; background: #ffd43b; border-radius: 3px;"></div>
+      <div class="mono" style="position: absolute; top: 18px; left: 20px; color: #fff; font-size: 13px; letter-spacing: 0.14em;">P1 000200</div>
+      <div class="mono" style="position: absolute; top: 18px; right: 20px; color: #fff; font-size: 13px; letter-spacing: 0.14em;">P2 000150</div>
+    </div>
+  </div>
+
+  <!-- Mandos conectados: se desvanece a los pocos segundos. -->
+  <div style="position: absolute; top: 12px; right: 14px; display: flex; gap: 7px;">
+    <sc-for list="{{fichas}}" as="f" hint-placeholder-count="2">
+      <div style="{{f.estilo}}">{{f.n}}</div>
+    </sc-for>
+  </div>
+
+  <!-- Diagnóstico: plegable, y se toca para esconderlo. -->
+  <div class="mono corte" style="position: absolute; top: 12px; left: 14px; display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: #06060cd0; border: 1px solid #1d2a3d; font-size: 10px; color: #5b7590; letter-spacing: 0.06em;">
+    <span style="color: #39ff7a;">▮</span>
+    <span>J1 12/19</span>
+    <span>J2 14/22</span>
+    <span style="color: #33465e;">0 DESC</span>
+  </div>
+
+  <div class="corte" style="position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); padding: 9px 22px; background: #06060cd8; border: 1px solid #39ff7a66; color: #39ff7a; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; box-shadow: 0 0 22px #39ff7a22;">
+    PARTIDA GUARDADA
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"mandos":{"editor":"int","default":2,"min":1,"max":4,"section":"Partida"}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const colores = ['#ff2e6a', '#00e5ff', '#39ff7a', '#ffb300'];
+    const n = this.props.mandos ?? 2;
+    const fichas = colores.slice(0, n).map((color, i) => ({
+      n: i + 1,
+      estilo:
+        'display: flex; align-items: center; justify-content: center;' +
+        'width: 24px; height: 24px; border-radius: 50%; font-size: 12px; font-weight: 700;' +
+        `background: #06060c; border: 1px solid ${color}; color: ${color};` +
+        `box-shadow: 0 0 14px ${color}66;`
+    }));
+    return { fichas };
+  }
+}
+</script>
+</body>
+</html>

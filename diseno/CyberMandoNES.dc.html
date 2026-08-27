@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #06060c; color: #e8f4ff; font-family: 'Chakra Petch', 'Trebuchet MS', sans-serif; }
+    a { color: #00e5ff; } a:hover { color: #7df9ff; }
+    .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+    .corte { clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px); }
+    .escena { position: absolute; inset: 0; overflow: hidden; }
+    .cielo { position: absolute; top: 0; left: 0; right: 0; height: 60%; background: radial-gradient(100% 130% at 50% 100%, var(--halo), transparent 70%); }
+    /* Tenue a propósito: con más brillo el resplandor invade el texto cercano. */
+    .horizonte { position: absolute; top: 60%; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--linea), transparent); opacity: 0.35; }
+    .suelo {
+      position: absolute; top: 60%; left: -60%; right: -60%; bottom: -25%;
+      transform: perspective(150px) rotateX(62deg); transform-origin: 50% 0%;
+      background-image:
+        repeating-linear-gradient(90deg, var(--rejilla) 0 1px, transparent 1px 46px),
+        repeating-linear-gradient(0deg, var(--rejilla) 0 1px, transparent 1px 46px);
+      -webkit-mask-image: linear-gradient(180deg, transparent, #000 22%, #000);
+      mask-image: linear-gradient(180deg, transparent, #000 22%, #000);
+    }
+  </style>
+</helmet>
+
+<!-- Variante NES / Game Boy: sin gatillos y con dos botones, que es lo que
+     pide el único núcleo vendorizado hoy. -->
+<div style="position: relative; width: 800px; height: 360px; box-sizing: border-box; background: #06060c; --halo: {{halo}}; --linea: {{color}}; --rejilla: {{rejilla}};">
+
+  <div class="escena">
+    <div class="cielo"></div>
+    <div class="suelo"></div>
+    <div class="horizonte"></div>
+  </div>
+
+  <div style="position: relative; height: 100%; box-sizing: border-box; padding: 34px 30px 24px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;">
+
+    <div style="position: absolute; top: 8px; left: 0; right: 0; display: flex; align-items: center; justify-content: center; gap: 16px;">
+      <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.24em; color: {{color}}; text-shadow: 0 0 12px {{color}};">P{{jugador}}</span>
+      <span class="mono" style="font-size: 10px; letter-spacing: 0.12em; color: #5b7590;">12/19 MS</span>
+    </div>
+
+    <div style="justify-self: start; position: relative; width: 196px; height: 196px; border-radius: 50%; background: radial-gradient(circle at 50% 40%, #0e1626, #070b13); border: 1px solid {{color}}44; box-shadow: 0 0 30px {{color}}22, inset 0 0 40px #000;">
+      <div style="position: absolute; top: 13%; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 22px solid transparent; border-right: 22px solid transparent; border-bottom: 27px solid {{color}}; filter: drop-shadow(0 0 8px {{color}});"></div>
+      <div style="position: absolute; bottom: 13%; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 22px solid transparent; border-right: 22px solid transparent; border-top: 27px solid #1d2a3d;"></div>
+      <div style="position: absolute; left: 13%; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-top: 22px solid transparent; border-bottom: 22px solid transparent; border-right: 27px solid {{color}}; filter: drop-shadow(0 0 8px {{color}});"></div>
+      <div style="position: absolute; right: 13%; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-top: 22px solid transparent; border-bottom: 22px solid transparent; border-left: 27px solid #1d2a3d;"></div>
+      <div style="position: absolute; inset: 37%; border-radius: 50%; background: #0a0f1a; border: 1px solid {{color}}33;"></div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 0 16px;">
+      <div style="display: flex; flex-direction: column; gap: 9px;">
+        <button class="corte" style="min-width: 104px; padding: 10px 0; border: none; background: #131a2c; color: #8aa6c2; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.16em;">SELECT</button>
+        <button class="corte" style="min-width: 104px; padding: 10px 0; border: none; background: #131a2c; color: #8aa6c2; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.16em;">START</button>
+      </div>
+      <div style="display: flex; gap: 6px;">
+        <span class="mono" style="font-size: 9px; letter-spacing: 0.12em; color: #5b7590; border: 1px solid #1d2a3d; padding: 5px 9px;">GUARDAR</span>
+        <span class="mono" style="font-size: 9px; letter-spacing: 0.12em; color: #5b7590; border: 1px solid #1d2a3d; padding: 5px 9px;">SALA</span>
+      </div>
+    </div>
+
+    <!-- B y A en diagonal, A más alta, como en el mando original. -->
+    <div style="justify-self: end; display: flex; align-items: center; gap: 26px;">
+      <button style="width: 92px; height: 92px; align-self: flex-end; border-radius: 50%; background: #0e1626; border: 1px solid #22304a; color: #8aa6c2; font-family: inherit; font-size: 30px; font-weight: 700;">B</button>
+      <button style="width: 108px; height: 108px; align-self: flex-start; border-radius: 50%; background: #0e1626; border: 1px solid {{color}}; color: {{color}}; font-family: inherit; font-size: 34px; font-weight: 700; box-shadow: 0 0 28px {{color}}55, inset 0 0 22px {{color}}22; text-shadow: 0 0 14px {{color}};">A</button>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"jugador":{"editor":"enum","options":["1","2","3","4"],"default":"2","section":"Mando"}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const colores = { 1: '#ff2e6a', 2: '#00e5ff', 3: '#39ff7a', 4: '#ffb300' };
+    const jugador = String(this.props.jugador ?? '2');
+    const color = colores[jugador] || colores[1];
+    return { jugador, color, halo: `${color}26`, rejilla: `${color}3d` };
+  }
+}
+</script>
+</body>
+</html>

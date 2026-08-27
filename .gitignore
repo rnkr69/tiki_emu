@@ -1,0 +1,34 @@
+# Juegos: NO se distribuyen. El repositorio no lleva ni una ROM, ni siquiera la
+# homebrew de pruebas — Alter Ego es freeware, no de licencia libre, así que
+# tampoco tiene sitio en un repositorio abierto. Ver el README para cómo añadirlos.
+roms/*
+!roms/README.md
+
+# Documentación de trabajo: especificación, planes, mediciones y notas de
+# desarrollo. Son cuadernos internos en español, no material publicable; lo que
+# alguien de fuera necesita saber está en los README.
+docs/
+
+# Dependencias y artefactos
+node_modules/
+paquete/
+
+# Compilación de Android. local.properties apunta al SDK de cada máquina, así
+# que versionarlo rompe la compilación de cualquier otro.
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+*.apk
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+
+# Ficheros que deja el servidor al arrancar en el móvil
+.consola.pid
+.consola.log
+
+# Lienzo de diseño ya montado: se regenera desde los .dc.html
+diseno/*.html
+!diseno/*.dc.html
